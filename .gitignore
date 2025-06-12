@@ -1,0 +1,33 @@
+# Python specific #
+__pycache__/
+*.py[cod]
+*.sqlite3
+zz_locust.py
+
+# Django specific #
+*.log
+local_settings.py
+db.sqlite3
+/staticfiles
+/media
+static/CACHE/
+.env
+
+# Environments
+*.env
+*.venv
+venv/
+env/
+ENV/
+.venv/
+
+# VSCode
+.vscode/
+.devcontainer/
+.prettierrc
+
+# MacOS specific #
+.DS_Store
+
+# Node.js
+node_modules/
