@@ -1,0 +1,84 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="it">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+    <meta name="tabs" content="{{ tabs|safe }}">
+    <title>Padel Cup 2025</title>
+    <link href="{% static 'css/styles.css' %}" rel="stylesheet"> <!-- Assicurati di avere il file CSS configurato -->
+    <link rel="icon" href="{% static 'image/favicon.ico' %}" type="image/x-icon">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Archivo:ital,wght@0,100..900;1,100..900&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&family=Pacifico&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.3/dist/leaflet.css" integrity="sha256-kLaT2GOSpHechhsozzB+flnD+zUyjE2LlfWPgU04xyI=" crossorigin="">
+    <script src="https://unpkg.com/htmx.org@2.0.4" integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+" crossorigin="anonymous"></script>    
+    <script src="https://unpkg.com/leaflet@1.9.3/dist/leaflet.js" integrity="sha256-WBkoXOwTeyKclOHuWtc+i2uENFpDZ9YPdf5Hf+D7ewM=" crossorigin=""></script>
+    <script async src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCxO_EUzO5XgRDDd2tIrahgsmHGSb8aFsQ&libraries=places&language=it"></script>
+    <script src="https://unpkg.com/@dotlottie/player-component@2.7.12/dist/dotlottie-player.mjs" type="module"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/collapse@3.14.8/dist/cdn.min.js"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/@alpinejs/focus@3.14.8/dist/cdn.min.js"></script>
+    <script defer src="https://unpkg.com/alpinejs@3.14.8/dist/cdn.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+    <script>
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    </script>
+
+</head>
+
+<body id="body" class="select-none flex flex-col h-svh bg-gray-100 font-body text-xs sm:text-sm text-gray-800 focus:outline-none focus:ring-1 focus:ring-blue-500 focus:ring-offset-2" 
+      x-data="{ isModal: false }">
+
+    <!-- Overlay modal -->
+    <div x-cloak x-show="isModal"
+         x-transition:enter="transition transform ease-out duration-500"
+         x-transition:enter-start="opacity-0"
+         x-transition:enter-end="opacity-100"
+         x-transition:leave="transition transform ease-in duration-500"
+         x-transition:leave-start="opacity-100"
+         x-transition:leave-end="opacity-0"
+         class="fixed inset-0 flex items-center justify-center bg-black bg-opacity-50 z-50">
+    </div>
+
+    <div
+        x-data="{
+            activePage: localStorage.getItem('activePage') || 'main-home',
+            init() {
+                const page = this.activePage;
+                let url = '';
+                let layout = window.innerWidth < 640 ? 'mobile' : 'desktop';
+        
+                if (page === 'main-home') {
+                    url = '{% url "homepage2" %}';
+                } else if (page === 'main-torneo') {
+                    url = '{% url "crea_torneo" %}';
+                } else {
+                    url = '{% url "homepage2" %}'; // default o altra pagina
+                }
+        
+                // carica automaticamente la pagina
+                htmx.ajax('GET', url, '#main-content');
+            },
+        }" 
+        x-init="$watch('activePage', value => localStorage.setItem('activePage', value))"
+        class="flex-1 flex flex-col overflow-hidden">
+        
+        <!-- Main content -->
+        <main class="flex-1 flex flex-col overflow-hidden">
+            <div id="main-content" class="flex-1 flex flex-col overflow-hidden relative"></div>
+        </main>
+
+    </div>
+
+    <!-- HTMX toasts -->
+    <div id="messages" 
+        hx-get="{% url 'aggiorna_messages' %}" 
+        hx-trigger="refreshMessages from:body">
+        {% include 'main/partials/components/toasts/toast.html' %}
+    </div>
+
+    <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
+
+       
+</body>
+</html>

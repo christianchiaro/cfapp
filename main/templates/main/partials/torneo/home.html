@@ -1,0 +1,70 @@
+<div id="main-torneo" class="flex-1 flex flex-col overflow-hidden relative p-4 gap-4" x-data="{ inputWidth: 0 }" x-init="$nextTick(() => { inputWidth = $refs.nameInput.offsetWidth })">
+    <div class="max-w-md p-6 bg-white rounded-lg shadow-md">
+        <h2 class="text-2xl font-bold mb-6 text-center text-gray-800">Crea Nuovo Torneo</h2>
+        
+        <form 
+            hx-post="{% url 'crea_torneo' %}"
+            hx-target="#main-torneo"
+            hx-indicator="#main-spinner"
+            class="space-y-4">
+            
+            {% csrf_token %}
+            
+            <div>
+                <label for="name" class="block text-sm font-medium text-gray-700 mb-2">
+                    Nome Torneo
+                </label>
+                <input 
+                    type="text" 
+                    id="name" 
+                    name="name" 
+                    x-ref="nameInput"
+                    class="w-full px-3 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                    placeholder="Inserisci il nome del torneo">
+            </div>
+            
+            <div>
+                <label for="start_date" class="block text-sm font-medium text-gray-700 mb-2">
+                    Data di Inizio
+                </label>
+                <input 
+                    type="date" 
+                    id="start_date" 
+                    name="start_date" 
+                    :style="`width: ${inputWidth}px`"
+                    class="bg-white h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+            
+            <div>
+                <label for="status" class="block text-sm font-medium text-gray-700 mb-2">
+                    Stato
+                </label>
+                <select 
+                    id="status" 
+                    name="status" 
+                    class="bg-white w-full px-3 h-10 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="SETUP" selected>Setup</option>
+                    <option value="GROUP_STAGE">Fase a Gironi</option>
+                    <option value="KNOCKOUT">Eliminazione Diretta</option>
+                    <option value="FINISHED">Terminato</option>
+                </select>
+            </div>
+            
+            <button 
+                type="submit"
+                class="w-full bg-blue-600 text-white h-10 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 hover:scale-95 transition duration-300">
+                Crea Torneo
+            </button>
+            <button 
+                hx-get="{% url 'homepage2' %}" 
+                hx-target="#main-content" 
+                hx-trigger="click"
+                hx-indicator="#main-spinner"
+                @click="activePage = 'main-home';"
+                class="w-full bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 hover:scale-95 transition duration-300">
+                Torna alla home
+            </button>
+        </form>
+    </div>
+</div>
+{% include 'main/partials/components/spinners/main-spinner.html' %}

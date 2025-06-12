@@ -1,0 +1,31 @@
+<div id="main-home" class="flex-1 flex flex-col overflow-hidden relative p-4 gap-4">
+    <button 
+        hx-get="{% url 'crea_torneo' %}" 
+        hx-target="#main-content" 
+        hx-trigger="click"
+        hx-indicator="#main-spinner"
+        @click="activePage = 'main-torneo';"
+        class="flex-1 flex items-center justify-center space-x-2 text-white rounded-lg h-12 p-2 w-full bg-emerald-700 hover:text-white transition-transform duration-300 transform active:scale-95">
+        <div class="mx-24 w-full h-fit flex items-center justify-between whitespace-nowrap truncate text-ellipsis">
+            <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M5 12h14"/><path d="M12 5v14"/>
+            </svg>
+            <span class="transition-opacity duration-300 text-md font-light">NUOVO TORNEO</span>
+        </div>
+    </button>
+    <button 
+        hx-get="{% url 'crea_torneo' %}" 
+        hx-target="#main-content" 
+        hx-trigger="click"
+        hx-indicator="#main-spinner"
+        @click="activePage = 'main-home';"
+        class="flex-1 flex items-center justify-center space-x-2 text-white rounded-lg h-12 p-2 w-full bg-yellow-600 hover:text-white transition-transform duration-300 transform active:scale-95">
+        <div class="mx-24 w-full h-fit flex items-center justify-between">
+            <svg xmlns="http://www.w3.org/2000/svg" class="size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path d="M8 6h10"/><path d="M6 12h9"/><path d="M11 18h7"/>
+            </svg>
+            <span class="transition-opacity duration-300 text-md font-light">GESTISCI TORNEI</span>
+        </div>
+    </button>
+</div>
+{% include 'main/partials/components/spinners/main-spinner.html' %} 
