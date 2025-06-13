@@ -27,7 +27,7 @@ def crea_torneo_partial(request):
         name = request.POST.get('name')
         start_date_raw = request.POST.get('start_date')
         # Validazione
-        if not name or not start_date:
+        if not name or not start_date_raw:
             messages.error(request, "Nome e data di inizio sono obbligatori!")
             response = HttpResponse(status=400)
             response['HX-Trigger'] = 'refreshMessages'
