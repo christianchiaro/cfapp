@@ -1,37 +1,54 @@
-from main.models import Tournament
-from django.shortcuts import render
-from django.template.loader import render_to_string
+from django.shortcuts import render, get_object_or_404
+from django.urls import reverse
 from django.http import HttpResponse
 from django.contrib import messages
+from django.template.loader import render_to_string
 from datetime import datetime
+from main.models import Tournament, Team, Match
 
 def aggiorna_messages(request):
     html = render_to_string('main/partials/components/toasts/toast.html', request=request)
     return HttpResponse(html)
 
 def homepage(request):
-    context = {}
-    return render(request, 'base.html', context)
+    tornei = Tournament.objects.all().order_by('-start_date')
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/homepage/home.html', {'tornei': tornei})
+    else:
+        return render(request, 'base.html', {'tornei': tornei})
 
 def homepage_partial(request):
     tornei = Tournament.objects.all().order_by('-start_date')
     return render(request, 'main/partials/homepage/home.html', {'tornei': tornei})
 
+def elimina_torneo_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    torneo.delete()
+    messages.success(request, "Torneo eliminato con successo.")
+    tornei = Tournament.objects.all().order_by('-start_date')
+    html = render_to_string('main/partials/homepage/home.html', {'tornei': tornei}, request=request)
+    response = HttpResponse(html)
+    response['HX-Trigger'] = 'refreshMessages'
+    return response
+
 def crea_torneo_partial(request):
     if request.method == "GET":
-        # Ritorna solo il template del form
-        return render(request, 'main/partials/torneo/home.html')
+        # Controlla se è una richiesta HTMX
+        if request.headers.get('HX-Request'):
+            return render(request, 'main/partials/torneo/home.html')
+        else:
+            # Se non è HTMX, restituisci la pagina completa
+            return render(request, 'base.html', {'content_template': 'main/partials/torneo/home.html'})
     
-    elif request.method == "POST":
-        # Processa il form
+    if request.method == "POST":
         name = request.POST.get('name')
         start_date_raw = request.POST.get('start_date')
-        # Validazione
         if not name or not start_date_raw:
             messages.error(request, "Nome e data di inizio sono obbligatori!")
             response = HttpResponse(status=400)
             response['HX-Trigger'] = 'refreshMessages'
             return response
+
         try:
             start_date = datetime.strptime(start_date_raw, "%Y-%m-%dT%H:%M")
         except ValueError:
@@ -39,22 +56,95 @@ def crea_torneo_partial(request):
             response = HttpResponse(status=400)
             response['HX-Trigger'] = 'refreshMessages'
             return response
-        
-        try:
-            tournament = Tournament.objects.create(
-                name=name,
-                start_date=start_date,
-            )
-            messages.success(request, f"Torneo {tournament.name} creato correttamente")
-            html = render_to_string('main/partials/torneo/home-torneo.html', {
-                'torneo': tournament
-            }, request=request)
 
-            response = HttpResponse(html)
+        try:
+            tournament = Tournament.objects.create(name=name, start_date=start_date)
+            messages.success(request, f"Torneo {tournament.name} creato correttamente")
+            response = HttpResponse()
+            response['HX-Trigger'] = 'refreshMessages'
+            response['HX-Redirect'] = reverse('home_torneo', args=[tournament.id])
+            return response
+        except Exception as e:
+            messages.error(request, f'Errore durante la creazione: {str(e)}')
+            response = HttpResponse(status=500)
             response['HX-Trigger'] = 'refreshMessages'
             return response
-            
-        except Exception as e:
-            return render(request, 'main/partials/crea_torneo_form.html', {
-                'error': f'Errore durante la creazione: {str(e)}'
-            })
+
+    return render(request, 'main/partials/torneo/home.html')
+
+def home_torneo_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/home-torneo.html', {'torneo': torneo})
+    else:
+        return render(request, 'base.html', {'torneo': torneo})
+
+def gestisci_squadre_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    teams = torneo.teams.all()
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+    else:
+        return render(request, 'base.html', {'torneo': torneo, 'teams': teams})
+
+def genera_gironi_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    teams = list(torneo.teams.all())
+    import random
+    random.shuffle(teams)
+    for i, team in enumerate(teams):
+        team.group = 'A' if i < len(teams) / 2 else 'B'
+        team.save()
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/home-torneo.html', {'torneo': torneo})
+    else:
+        return render(request, 'base.html', {'torneo': torneo})
+
+def avvia_torneo_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    torneo.status = 'GROUP_STAGE'
+    torneo.save()
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/home-torneo.html', {'torneo': torneo})
+    else:
+        return render(request, 'base.html', {'torneo': torneo})
+
+def classifica_gironi_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    teams = torneo.teams.all().order_by('-group_points', 'name')
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/classifica_gironi.html', {'torneo': torneo, 'teams': teams})
+    else:
+        return render(request, 'base.html', {'torneo': torneo, 'teams': teams})
+
+def gestisci_partite_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    matches = torneo.matches.filter(stage='GROUP')
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/gestisci_partite.html', {'torneo': torneo, 'matches': matches})
+    else:
+        return render(request, 'base.html', {'torneo': torneo, 'matches': matches})
+
+def tabellone_finale_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    matches = torneo.matches.filter(stage__in=['SEMI_FINAL', 'FINAL_1_2', 'FINAL_3_4', 'FINAL_5_6', 'FINAL_7_8'])
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/tabellone_finale.html', {'torneo': torneo, 'matches': matches})
+    else:
+        return render(request, 'base.html', {'torneo': torneo, 'matches': matches})
+
+def gestisci_finali_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    matches = torneo.matches.filter(stage__in=['SEMI_FINAL', 'FINAL_1_2', 'FINAL_3_4', 'FINAL_5_6', 'FINAL_7_8'])
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/gestisci_finali.html', {'torneo': torneo, 'matches': matches})
+    else:
+        return render(request, 'base.html', {'torneo': torneo, 'matches': matches})
+
+def classifica_finale_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    teams = torneo.teams.all().order_by('-group_points', 'name')
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/classifica_finale.html', {'torneo': torneo, 'teams': teams})
+    else:
+        return render(request, 'base.html', {'torneo': torneo, 'teams': teams})

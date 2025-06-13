@@ -4,7 +4,7 @@
         
         <form 
             hx-post="{% url 'crea_torneo' %}"
-            hx-target="#main-torneo"
+            hx-target="#main-content"
             hx-indicator="#main-spinner"
             class="space-y-4">
             
@@ -40,6 +40,7 @@
             </button>
             <button 
                 hx-get="{% url 'homepage2' %}" 
+                hx-push-url="{% url 'homepage' %}"
                 hx-target="#main-content" 
                 hx-trigger="click"
                 hx-indicator="#main-spinner"

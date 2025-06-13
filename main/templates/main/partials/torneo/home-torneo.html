@@ -1,0 +1,272 @@
+{% load tz %}
+
+<div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
+    <!-- Header del Torneo -->
+    <div class="w-full p-4 bg-white rounded-lg shadow-md flex flex-col items-center gap-4 hover:bg-gray-200 transition duration-300">
+        <div class="w-full flex flex-row items-center gap-2">
+            <div class="flex-grow flex flex-col">
+                <div class="text-lg font-semibold text-gray-800 leading-none">{{ torneo.name }}</div>
+                <div class="text-sm text-gray-500">{{ torneo.start_date|date:"d/m/Y H:i" }}</div>
+            </div>
+            <div class="rounded-full w-fit flex flex-row gap-1 items-center bg-yellow-400 px-4 py-1 text-xs font-medium text-white whitespace-nowrap">{{ torneo.status|title }}</div>
+        </div>
+        <div class="w-full flex justify-between items-center">
+            <div class="w-full flex items-center gap-2">
+                <button 
+                    hx-get="{% url 'homepage2' %}" 
+                    hx-push-url="{% url 'homepage' %}"
+                    hx-target="#main-content" 
+                    hx-trigger="click"
+                    hx-indicator="#main-spinner"
+                    @click="activePage = 'main-home';"
+                    class="flex-1 bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300">
+                    Torna alla home
+                </button>
+                {% if torneo.status == 'SETUP' %}
+                <button 
+                    hx-post="{% url 'elimina_torneo' torneo.id %}" 
+                    hx-push-url="{% url 'homepage' %}"
+                    hx-confirm="Sei sicuro di voler eliminare questo torneo?"
+                    hx-target="#main-content"
+                    hx-indicator="#main-spinner"
+                    @click="activePage = 'main-home';"
+                    class="flex-1 bg-red-300 text-white h-10 px-4 rounded-md hover:bg-red-400 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2 transition duration-300">
+                    Elimina
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistiche Rapide -->
+    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-blue-100 text-blue-600">
+                    <i class="fas fa-users text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Squadre</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ torneo.teams_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-green-100 text-green-600">
+                    <i class="fas fa-trophy text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Partite Giocate</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ torneo.matches_finished_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-purple-100 text-purple-600">
+                    <i class="fas fa-clock text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Partite Rimanenti</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ torneo.matches_remaining_count }}</p>
+                </div>
+            </div>
+        </div>
+        
+        <div class="bg-white rounded-lg shadow-md p-4">
+            <div class="flex items-center">
+                <div class="p-3 rounded-full bg-orange-100 text-orange-600">
+                    <i class="fas fa-percent text-xl"></i>
+                </div>
+                <div class="ml-4">
+                    <p class="text-sm font-medium text-gray-600">Progresso</p>
+                    <p class="text-2xl font-semibold text-gray-900">{{ torneo.progress_percentage }}%</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Azioni Principali -->
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Gestione Torneo</h2>
+        
+        {% if torneo.status == 'SETUP' %}
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <button 
+                hx-get="{% url 'gestisci_squadre' torneo.id %}" 
+                hx-push-url="{% url 'gestisci_squadre' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                hx-swap="outerHTML"
+                class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition duration-300 text-center">
+                <i class="fas fa-users text-2xl mb-2"></i>
+                <p class="font-semibold">Gestisci Squadre</p>
+                <p class="text-sm opacity-75">Aggiungi e modifica le squadre</p>
+            </button>
+            
+            <button 
+                hx-post="{% url 'genera_gironi' torneo.id %}" 
+                hx-push-url="{% url 'genera_gironi' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                {% if torneo.teams_count < 4 %}disabled{% endif %}
+                class="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition duration-300 text-center
+                       {% if torneo.teams_count < 4 %}opacity-50 cursor-not-allowed{% endif %}">
+                <i class="fas fa-random text-2xl mb-2"></i>
+                <p class="font-semibold">Genera Gironi</p>
+                <p class="text-sm opacity-75">Crea i gironi automaticamente</p>
+            </button>
+            
+            <button 
+                hx-post="{% url 'avvia_torneo' torneo.id %}" 
+                hx-push-url="{% url 'avvia_torneo' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                {% if not torneo.teams.exists %}disabled{% endif %}
+                class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition duration-300 text-center
+                       {% if not torneo.teams.exists %}opacity-50 cursor-not-allowed{% endif %}">
+                <i class="fas fa-play text-2xl mb-2"></i>
+                <p class="font-semibold">Avvia Torneo</p>
+                <p class="text-sm opacity-75">Inizia la fase a gironi</p>
+            </button>
+        </div>
+        {% elif torneo.status == 'GROUP_STAGE' %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button 
+                hx-get="{% url 'classifica_gironi' torneo.id %}" 
+                hx-push-url="{% url 'classifica_gironi' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition duration-300 text-center">
+                <i class="fas fa-list-ol text-2xl mb-2"></i>
+                <p class="font-semibold">Classifica Gironi</p>
+                <p class="text-sm opacity-75">Visualizza le classifiche</p>
+            </button>
+            
+            <button 
+                hx-get="{% url 'gestisci_partite' torneo.id %}" 
+                hx-push-url="{% url 'gestisci_partite' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                class="bg-green-500 text-white p-4 rounded-lg hover:bg-green-600 transition duration-300 text-center">
+                <i class="fas fa-soccer-ball text-2xl mb-2"></i>
+                <p class="font-semibold">Gestisci Partite</p>
+                <p class="text-sm opacity-75">Inserisci risultati</p>
+            </button>
+        </div>
+        {% elif torneo.status == 'KNOCKOUT' %}
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <button 
+                hx-get="{% url 'tabellone_finale' torneo.id %}" 
+                hx-push-url="{% url 'tabellone_finale' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition duration-300 text-center">
+                <i class="fas fa-sitemap text-2xl mb-2"></i>
+                <p class="font-semibold">Tabellone Finale</p>
+                <p class="text-sm opacity-75">Visualizza le finali</p>
+            </button>
+            
+            <button 
+                hx-get="{% url 'gestisci_finali' torneo.id %}" 
+                hx-push-url="{% url 'gestisci_finali' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                class="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition duration-300 text-center">
+                <i class="fas fa-trophy text-2xl mb-2"></i>
+                <p class="font-semibold">Gestisci Finali</p>
+                <p class="text-sm opacity-75">Inserisci risultati finali</p>
+            </button>
+        </div>
+        {% elif torneo.status == 'FINISHED' %}
+        <div class="text-center">
+            <button 
+                hx-get="{% url 'classifica_finale' torneo.id %}" 
+                hx-push-url="{% url 'classifica_finale' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                class="bg-gold-500 text-white p-4 rounded-lg hover:bg-gold-600 transition duration-300">
+                <i class="fas fa-medal text-2xl mb-2"></i>
+                <p class="font-semibold">Classifica Finale</p>
+                <p class="text-sm opacity-75">Visualizza i vincitori</p>
+            </button>
+        </div>
+        {% endif %}
+    </div>
+
+    <!-- Anteprima Squadre (se esistono) -->
+    {% if torneo.teams.exists %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800">Squadre Partecipanti</h2>
+            <span class="text-sm text-gray-600">{{ torneo.teams_count }} squadre</span>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {% for team in torneo.teams.all %}
+            <div class="border border-gray-200 rounded-lg p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <h3 class="font-semibold text-gray-800">{{ team.name }}</h3>
+                        <p class="text-sm text-gray-600">{{ team.player1.name }} - {{ team.player2.name }}</p>
+                        {% if team.group %}
+                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800 mt-1">
+                            Girone {{ team.group }}
+                        </span>
+                        {% endif %}
+                    </div>
+                    {% if torneo.status != 'SETUP' %}
+                    <div class="text-right">
+                        <p class="text-sm font-semibold text-gray-800">{{ team.group_points }} pt</p>
+                        <p class="text-xs text-gray-600">{{ team.games_played }} partite</p>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Ultime Partite (se esistono) -->
+    {% if torneo.matches.exists %}
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Ultime Partite</h2>
+        
+        <div class="space-y-3">
+            {% for match in torneo.recent_matches %}
+            <div class="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                <div class="flex items-center space-x-4">
+                    <span class="text-sm font-medium text-gray-600">{{ match.get_stage_display }}</span>
+                    <div class="flex items-center space-x-2">
+                        <span class="font-semibold">{{ match.team1.name }}</span>
+                        {% if match.is_finished %}
+                        <span class="text-lg font-bold">{{ match.score_team1 }} - {{ match.score_team2 }}</span>
+                        {% else %}
+                        <span class="text-gray-400">vs</span>
+                        {% endif %}
+                        <span class="font-semibold">{{ match.team2.name }}</span>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    {% if match.is_finished %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                        Finita
+                    </span>
+                    {% else %}
+                    <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                        Da giocare
+                    </span>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% include 'main/partials/components/spinners/main-spinner.html' %}

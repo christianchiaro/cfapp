@@ -2,14 +2,42 @@
 from django.db import models
 from django.db.models import Q, Sum
 
+# main/models.py - Aggiungi queste proprietà alla classe Tournament
+
 class Tournament(models.Model):
     name = models.CharField(max_length=100)
     start_date = models.DateTimeField()
-    # Potremmo aggiungere uno stato: 'SETUP', 'GROUP_STAGE', 'KNOCKOUT', 'FINISHED'
     status = models.CharField(max_length=20, default='SETUP')
 
     def __str__(self):
         return self.name
+    
+    # Nuove proprietà per le statistiche
+    @property
+    def matches_finished_count(self):
+        return self.matches.filter(is_finished=True).count()
+    
+    @property
+    def matches_remaining_count(self):
+        return self.matches.filter(is_finished=False).count()
+    
+    @property
+    def matches_total_count(self):
+        return self.matches.count()
+    
+    @property
+    def progress_percentage(self):
+        if self.matches_total_count == 0:
+            return 0
+        return round((self.matches_finished_count / self.matches_total_count) * 100)
+    
+    @property
+    def teams_count(self):
+        return self.teams.count()
+    
+    @property
+    def recent_matches(self):
+        return self.matches.all().order_by('-id')[:5]
 
 class Player(models.Model):
     name = models.CharField(max_length=100)

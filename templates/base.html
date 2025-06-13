@@ -43,23 +43,49 @@
         x-data="{
             activePage: localStorage.getItem('activePage') || 'main-home',
             init() {
-                const page = this.activePage;
+                const path = window.location.pathname;
                 let url = '';
-                let layout = window.innerWidth < 640 ? 'mobile' : 'desktop';
-        
-                if (page === 'main-home') {
-                    url = '{% url "homepage2" %}';
-                } else if (page === 'main-torneo') {
-                    url = '{% url "crea_torneo" %}';
-                } else {
-                    url = '{% url "homepage2" %}'; // default o altra pagina
-                }
-        
-                // carica automaticamente la pagina
-                htmx.ajax('GET', url, '#main-content');
-            },
-        }" 
-        x-init="$watch('activePage', value => localStorage.setItem('activePage', value))"
+
+                const directLoad = () => {
+                    if (path.includes('home-torneo')) {
+                        htmx.ajax('GET', path, '#main-content');
+                    } else if (path.includes('gestisci-squadre')) {
+                        htmx.ajax('GET', path, '#main-content');
+                    } else if (path.includes('crea-torneo')) {
+                        htmx.ajax('GET', path, '#main-content');
+                    } else if (path.includes('genera-gironi')) {
+                        const torneoId = path.split('/').pop();
+                        url = `/genera-gironi/${torneoId}/`;
+                    } else if (path.includes('avvia-torneo')) {
+                        const torneoId = path.split('/').pop();
+                        url = `/avvia-torneo/${torneoId}/`;
+                    } else if (path.includes('classifica-gironi')) {
+                        const torneoId = path.split('/').pop();
+                        url = `/classifica-gironi/${torneoId}/`;
+                    } else if (path.includes('gestisci-partite')) {
+                        const torneoId = path.split('/').pop();
+                        url = `/gestisci-partite/${torneoId}/`;
+                    } else if (path.includes('tabellone-finale')) {
+                        const torneoId = path.split('/').pop();
+                        url = `/tabellone-finale/${torneoId}/`;
+                    } else if (path.includes('gestisci-finali')) {
+                        const torneoId = path.split('/').pop();
+                        url = `/gestisci-finali/${torneoId}/`;
+                    } else if (path.includes('classifica-finale')) {
+                        const torneoId = path.split('/').pop();
+                        url = `/classifica-finale/${torneoId}/`;
+                    } else {
+                        url = '{% url "homepage2" %}';
+                    }
+
+                    if (url) htmx.ajax('GET', url, '#main-content');
+                };
+
+                this.$nextTick(() => {
+                    directLoad();
+                });
+            }
+        }"
         class="flex-1 flex flex-col overflow-hidden">
         
         <!-- Main content -->
