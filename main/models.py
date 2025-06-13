@@ -75,7 +75,6 @@ class Team(models.Model):
     def games_played(self):
          return Match.objects.filter(Q(team1=self) | Q(team2=self), stage='GROUP', is_finished=True).count()
 
-
 class Match(models.Model):
     STAGE_CHOICES = [
         ('GROUP', 'Group Stage'),

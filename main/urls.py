@@ -21,6 +21,7 @@ urlpatterns = [
     path('elimina-torneo/<int:torneo_id>/', views.elimina_torneo_partial, name='elimina_torneo'),
     # Manage teams
     path('gestisci-squadre/<int:torneo_id>/', views.gestisci_squadre_partial, name='gestisci_squadre'),
+    path('gestisci-squadre/<int:torneo_id>/create-team', views.gestisci_squadre_create_team, name='gestisci_squadre_create_team'),
     # Generate groups
     path('genera-gironi/<int:torneo_id>/', views.genera_gironi_partial, name='genera_gironi'),
     # Start tournament

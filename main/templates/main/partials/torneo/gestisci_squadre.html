@@ -1,17 +1,77 @@
 <div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
-    <div class="bg-white rounded-lg shadow-md p-6">
+    <div class="bg-white rounded-lg shadow-md p-4">
         <h2 class="text-xl font-bold text-gray-800 mb-4">Gestisci Squadre</h2>
-        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {% for team in teams %}
-            <div class="border border-gray-200 rounded-lg p-4">
-                <div class="flex items-center justify-between">
-                    <div>
-                        <h3 class="font-semibold text-gray-800">{{ team.name }}</h3>
-                        <p class="text-sm text-gray-600">{{ team.player1.name }} - {{ team.player2.name }}</p>
-                    </div>
-                </div>
+        <form 
+            hx-post="{% url 'gestisci_squadre_create_team' torneo.id %}"
+            hx-target="#main-torneo"
+            hx-indicator="#main-spinner"
+            hx-swap="outerHTML"
+            class="space-y-4"
+        >
+
+            <!-- Hidden field for tournament ID -->
+            <input type="hidden" name="tournament_id" value="{{ torneo.id }}">
+
+            <!-- Team Name -->
+            <div>
+                <label for="team_name" class="block text-sm font-medium text-gray-700">Nome Squadra</label>
+                <input type="text" name="team_name" id="team_name"
+                    class="w-full px-3 h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
             </div>
-            {% endfor %}
+
+            <!-- Player 1 -->
+            <div>
+                <label for="player1" class="block text-sm font-medium text-gray-700">Giocatore 1</label>
+                <input type="text" name="player1" id="player1"
+                    class="w-full px-3 h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Player 2 -->
+            <div>
+                <label for="player2" class="block text-sm font-medium text-gray-700">Giocatore 2</label>
+                <input type="text" name="player2" id="player2"
+                    class="w-full px-3 h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+            </div>
+
+            <!-- Group -->
+            <div>
+                <label for="group" class="block text-sm font-medium text-gray-700">Girone</label>
+                <select name="group" id="group"
+                        class="bg-white w-full px-3 h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                    <option value="">Seleziona un girone</option>
+                    <option value="A">Girone A</option>
+                    <option value="B">Girone B</option>
+                </select>
+            </div>
+
+            <!-- Submit Button -->
+            <button type="submit"
+                    class="w-full bg-blue-600 text-white h-10 px-4 rounded-lg hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition duration-300">
+                Crea Squadra
+            </button>
+            <button 
+                hx-get="{% url 'home_torneo' torneo.id %}" 
+                hx-push-url="{% url 'home_torneo' torneo.id %}"
+                hx-target="#main-content" 
+                hx-trigger="click"
+                hx-indicator="#main-spinner"
+                @click="activePage = 'main-home';"
+                class="w-full bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300">
+                Torna alla home
+            </button>
+        </form>
+    </div>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for team in teams %}
+        <div class="max-w-md p-4 bg-white rounded-lg shadow-md">
+            <div class="w-full flex flex-row items-center gap-2">
+                <div class="flex-grow flex flex-col">
+                    <div class="text-lg font-semibold text-gray-800 leading-none">{{ team.name }}</div>
+                    <div class="text-sm text-gray-500">{{ team.player1.name }} - {{ team.player2.name }}</div>
+                </div>
+                <div class="rounded-full w-fit flex flex-row gap-1 items-center bg-yellow-400 px-4 py-1 text-xs font-medium text-white whitespace-nowrap">Girone {{ team.group|title }}</div>
+            </div>
         </div>
+        {% endfor %}
     </div>
 </div>  

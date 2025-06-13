@@ -3,8 +3,10 @@ from django.urls import reverse
 from django.http import HttpResponse
 from django.contrib import messages
 from django.template.loader import render_to_string
+from django.db import IntegrityError
+from django.db.models import Q
 from datetime import datetime
-from main.models import Tournament, Team, Match
+from main.models import Tournament, Team, Player, Match
 
 def aggiorna_messages(request):
     html = render_to_string('main/partials/components/toasts/toast.html', request=request)
@@ -86,6 +88,97 @@ def gestisci_squadre_partial(request, torneo_id):
         return render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
     else:
         return render(request, 'base.html', {'torneo': torneo, 'teams': teams})
+
+def gestisci_squadre_manage_teams(request, tournament_id):
+    """View per gestire le squadre di un torneo"""
+    tournament = get_object_or_404(Tournament, id=tournament_id)
+    teams = Team.objects.filter(tournament=tournament).select_related('player1', 'player2')
+    players = Player.objects.all()
+
+    context = {
+        'tournament': tournament,
+        'teams': teams,
+        'players': players,
+    }
+    return render(request, 'main/partials/torneo/gestisci_squadre.html', context)
+
+def gestisci_squadre_create_team(request, torneo_id):
+    """View per creare una nuova squadra"""
+    if request.method == 'POST':
+        team_name = request.POST.get('team_name')
+        player1_name = request.POST.get('player1')
+        player2_name = request.POST.get('player2')
+        group = request.POST.get('group') or None
+        tournament_id = request.POST.get('tournament_id')
+        torneo = get_object_or_404(Tournament, id=tournament_id)
+        teams = torneo.teams.all()  
+
+        try:
+            # Validazioni
+            if not all([team_name, player1_name, player2_name, tournament_id]):
+                messages.error(request, 'Tutti i campi obbligatori devono essere compilati.')
+                response = render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+
+            if player1_name == player2_name:
+                messages.error(request, 'I due giocatori devono essere diversi.')
+                response = render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+
+            # Recupera gli oggetti
+            tournament = get_object_or_404(Tournament, id=tournament_id)
+            player1, created = Player.objects.get_or_create(name=player1_name)
+            player2, created = Player.objects.get_or_create(name=player2_name)
+
+            # Verifica che i giocatori non siano già in una squadra dello stesso torneo
+            existing_teams_p1 = Team.objects.filter(tournament=tournament).filter(
+                Q(player1=player1) | Q(player2=player1)
+            )
+            existing_teams_p2 = Team.objects.filter(tournament=tournament).filter(
+                Q(player1=player2) | Q(player2=player2)
+            )
+
+            if existing_teams_p1.exists():
+                messages.error(request, f'{player1.name} è già in una squadra di questo torneo.')
+                response = render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+
+            if existing_teams_p2.exists():
+                messages.error(request, f'{player2.name} è già in una squadra di questo torneo.')
+                response = render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+
+            # Crea la squadra
+            team = Team.objects.create(
+                name=team_name,
+                tournament=tournament,
+                player1=player1,
+                player2=player2,
+                group=group
+            )
+
+            messages.success(request, f'Squadra "{team_name}" creata con successo!')
+
+        except IntegrityError:
+            messages.error(request, 'Errore nella creazione della squadra. Verifica che il nome non sia già utilizzato.')
+        except Exception as e:
+            messages.error(request, f'Errore imprevisto: {str(e)}')
+
+        response = render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+        response['HX-Trigger'] = 'refreshMessages'
+        return response
+
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    teams = torneo.teams.all()  
+
+    # Se non è POST, renderizza la pagina di gestione
+    response = render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+    response['HX-Trigger'] = 'refreshMessages'
+    return response
 
 def genera_gironi_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
