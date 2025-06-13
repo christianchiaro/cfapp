@@ -78,6 +78,13 @@
 
     <input type="hidden" id="csrf-token" value="{{ csrf_token }}">
 
-       
+    <script>
+    document.addEventListener("htmx:configRequest", (event) => {
+        const csrfToken = document.querySelector('#csrf-token')?.value;
+        if (csrfToken) {
+        event.detail.headers['X-CSRFToken'] = csrfToken;
+        }
+    });
+    </script>
 </body>
 </html>

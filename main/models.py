@@ -4,7 +4,7 @@ from django.db.models import Q, Sum
 
 class Tournament(models.Model):
     name = models.CharField(max_length=100)
-    start_date = models.DateField()
+    start_date = models.DateTimeField()
     # Potremmo aggiungere uno stato: 'SETUP', 'GROUP_STAGE', 'KNOCKOUT', 'FINISHED'
     status = models.CharField(max_length=20, default='SETUP')
 

@@ -43,6 +43,10 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
+CSRF_TRUSTED_ORIGINS = [
+    "https://localhost:8000",
+]
+
 ROOT_URLCONF = "padelcupconcorezzo.urls"
 
 TEMPLATES = [
