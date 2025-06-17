@@ -52,7 +52,7 @@
             <button 
                 hx-get="{% url 'home_torneo' torneo.id %}" 
                 hx-push-url="{% url 'home_torneo' torneo.id %}"
-                hx-target="#main-content" 
+                hx-target="#main-torneo" 
                 hx-trigger="click"
                 hx-indicator="#main-spinner"
                 @click="activePage = 'main-home';"
