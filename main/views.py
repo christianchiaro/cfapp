@@ -7,6 +7,10 @@ from django.db import IntegrityError
 from django.db.models import Q
 from datetime import datetime
 from main.models import Tournament, Team, Player, Match
+from datetime import datetime, timedelta
+from itertools import combinations
+from collections import deque
+import random
 
 def aggiorna_messages(request):
     html = render_to_string('main/partials/components/toasts/toast.html', request=request)
@@ -89,26 +93,13 @@ def gestisci_squadre_partial(request, torneo_id):
     else:
         return render(request, 'base.html', {'torneo': torneo, 'teams': teams})
 
-def gestisci_squadre_manage_teams(request, tournament_id):
-    """View per gestire le squadre di un torneo"""
-    tournament = get_object_or_404(Tournament, id=tournament_id)
-    teams = Team.objects.filter(tournament=tournament).select_related('player1', 'player2')
-    players = Player.objects.all()
-
-    context = {
-        'tournament': tournament,
-        'teams': teams,
-        'players': players,
-    }
-    return render(request, 'main/partials/torneo/gestisci_squadre.html', context)
-
 def gestisci_squadre_create_team(request, torneo_id):
     """View per creare una nuova squadra"""
     if request.method == 'POST':
         team_name = request.POST.get('team_name')
         player1_name = request.POST.get('player1')
         player2_name = request.POST.get('player2')
-        group = request.POST.get('group') or None
+        group = request.POST.get('group')
         tournament_id = request.POST.get('tournament_id')
         torneo = get_object_or_404(Tournament, id=tournament_id)
         teams = torneo.teams.all()  
@@ -152,6 +143,29 @@ def gestisci_squadre_create_team(request, torneo_id):
                 response['HX-Trigger'] = 'refreshMessages'
                 return response
 
+            # Se il gruppo non è specificato, scegline uno a caso
+            if not group:  # This checks for both None and empty string
+                group = random.choice(['A', 'B'])
+
+            # Se il gruppo non è specificato, scegline uno a caso
+            if not group:
+                group = random.choice(['A', 'B'])
+
+            # Check if the selected group has fewer than 4 teams
+            group_team_count = Team.objects.filter(tournament=tournament, group=group).count()
+            if group_team_count >= 4:
+                other_group = 'B' if group == 'A' else 'A'
+                if Team.objects.filter(tournament=tournament, group=other_group).count() < 4:
+                    group = other_group
+                    message = f'Il girone {group} è pieno. La squadra è stata inserita nel girone {other_group}.'
+                else:
+                    messages.error(request, 'Numero masimo di squadre raggiunto.')
+                    response = render(request, 'main/partials/torneo/gestisci_squadre.html', {'torneo': torneo, 'teams': teams})
+                    response['HX-Trigger'] = 'refreshMessages'
+                    return response
+            else:
+                message = f'Squadra "{team_name}" creata con successo!'
+
             # Crea la squadra
             team = Team.objects.create(
                 name=team_name,
@@ -161,7 +175,7 @@ def gestisci_squadre_create_team(request, torneo_id):
                 group=group
             )
 
-            messages.success(request, f'Squadra "{team_name}" creata con successo!')
+            messages.success(request, message)
 
         except IntegrityError:
             messages.error(request, 'Errore nella creazione della squadra. Verifica che il nome non sia già utilizzato.')
@@ -189,7 +203,7 @@ def genera_gironi_partial(request, torneo_id):
         team.group = 'A' if i < len(teams) / 2 else 'B'
         team.save()
     if request.headers.get('HX-Request'):
-        return render(request, 'main/partials/torneo/home-torneo.html', {'torneo': torneo})
+        return render(request, 'main/partials/torneo/squadre_partecipanti.html', {'torneo': torneo})
     else:
         return render(request, 'base.html', {'torneo': torneo})
 
@@ -197,6 +211,80 @@ def avvia_torneo_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
     torneo.status = 'GROUP_STAGE'
     torneo.save()
+
+    def generate_schedule(torneo):
+        teams_by_group = {}
+        for team in torneo.teams.all():
+            teams_by_group.setdefault(team.group, []).append(team)
+
+        matchups_by_group = {}
+        for group, teams in teams_by_group.items():
+            matchups_by_group[group] = deque(combinations(teams, 2))
+
+        schedule = []
+        start_time = torneo.start_date
+        match_duration = timedelta(minutes=45)
+
+        while matchups_by_group['A'] or matchups_by_group['B']:
+            played_teams_A = set()
+            played_teams_B = set()
+            round_matchups = []
+
+            # Process Group A (max 2 match)
+            count = 0
+            temp = deque()
+            while matchups_by_group['A'] and count < 2:
+                match = matchups_by_group['A'].popleft()
+                if match[0] not in played_teams_A and match[1] not in played_teams_A:
+                    round_matchups.append((match[0], match[1], 'A'))
+                    played_teams_A.update([match[0], match[1]])
+                    count += 1
+                else:
+                    temp.append(match)
+            matchups_by_group['A'].extend(temp)  # rimetti gli scartati alla fine
+
+            # Process Group B (max 2 match)
+            count = 0
+            temp = deque()
+            while matchups_by_group['B'] and count < 2:
+                match = matchups_by_group['B'].popleft()
+                if match[0] not in played_teams_B and match[1] not in played_teams_B:
+                    round_matchups.append((match[0], match[1], 'B'))
+                    played_teams_B.update([match[0], match[1]])
+                    count += 1
+                else:
+                    temp.append(match)
+            matchups_by_group['B'].extend(temp)
+
+            # Aggiungi le 4 partite della giornata (2 per girone)
+            for team1, team2, group in round_matchups:
+                schedule.append({
+                    'tournament': torneo,
+                    'team1': team1,
+                    'team2': team2,
+                    'start_time': start_time,
+                    'stage': 'GROUP',
+                    'is_finished': False
+                })
+
+            start_time += match_duration
+
+        return schedule
+
+    # Generate the schedule
+    schedule = generate_schedule(torneo)
+
+    # Save the matches to the database
+    for match_data in schedule:
+        Match.objects.create(
+            tournament=match_data['tournament'],
+            team1=match_data['team1'],
+            team2=match_data['team2'],
+            stage=match_data['stage'],
+            is_finished=match_data['is_finished'],
+            start_time=match_data['start_time'],
+        )
+
     if request.headers.get('HX-Request'):
         return render(request, 'main/partials/torneo/home-torneo.html', {'torneo': torneo})
     else:
@@ -212,11 +300,38 @@ def classifica_gironi_partial(request, torneo_id):
 
 def gestisci_partite_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
-    matches = torneo.matches.filter(stage='GROUP')
+
+    # 🔁 GESTIONE SALVATAGGIO RISULTATI
+    if request.method == 'POST':
+        match_id = request.POST.get("match_id")
+        score_team1 = request.POST.get("score_team1")
+        score_team2 = request.POST.get("score_team2")
+
+        if match_id and score_team1 is not None and score_team2 is not None:
+            try:
+                match = Match.objects.get(id=match_id, tournament=torneo)
+                match.score_team1 = int(score_team1)
+                match.score_team2 = int(score_team2)
+                match.is_finished = True
+                match.save()
+            except (Match.DoesNotExist, ValueError):
+                messages.error(request, "Qualcosa è andato storto.")
+                response = HttpResponse(status=400)
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+
+    matches = torneo.matches.filter(stage='GROUP').order_by('start_time')
+
     if request.headers.get('HX-Request'):
-        return render(request, 'main/partials/torneo/gestisci_partite.html', {'torneo': torneo, 'matches': matches})
+        return render(request, 'main/partials/torneo/gestisci_partite.html', {
+            'torneo': torneo,
+            'matches': matches
+        })
     else:
-        return render(request, 'base.html', {'torneo': torneo, 'matches': matches})
+        return render(request, 'base.html', {
+            'torneo': torneo,
+            'matches': matches
+        })
 
 def tabellone_finale_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)

@@ -63,14 +63,18 @@
     </div>
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for team in teams %}
-        <div class="max-w-md p-4 bg-white rounded-lg shadow-md">
-            <div class="w-full flex flex-row items-center gap-2">
-                <div class="flex-grow flex flex-col">
-                    <div class="text-lg font-semibold text-gray-800 leading-none">{{ team.name }}</div>
-                    <div class="text-sm text-gray-500">{{ team.player1.name }} - {{ team.player2.name }}</div>
-                </div>
-                <div class="rounded-full w-fit flex flex-row gap-1 items-center bg-yellow-400 px-4 py-1 text-xs font-medium text-white whitespace-nowrap">Girone {{ team.group|title }}</div>
+        <div class="w-full flex flex-row items-center gap-2 bg-white rounded-lg p-4 shadow-md">
+            <div class="flex-grow flex flex-col">
+                <div class="font-semibold text-gray-800">{{ team.name }}</div>
+                <div class="text-sm text-gray-500">{{ team.player1.name }} - {{ team.player2.name }}</div>
             </div>
+            {% if team.group %}
+            {% if team.group == 'A' %}
+                <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Girone {{ team.group }}</div>
+            {% else %}
+                <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Girone {{ team.group }}</div>
+            {% endif %}
+            {% endif %}
         </div>
         {% endfor %}
     </div>

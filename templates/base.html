@@ -45,6 +45,7 @@
             init() {
                 const path = window.location.pathname;
                 let url = '';
+                const torneoId = path.split('/').filter(Boolean).pop();
 
                 const directLoad = () => {
                     if (path.includes('home-torneo')) {
@@ -63,8 +64,7 @@
                         const torneoId = path.split('/').pop();
                         url = `/classifica-gironi/${torneoId}/`;
                     } else if (path.includes('gestisci-partite')) {
-                        const torneoId = path.split('/').pop();
-                        url = `/gestisci-partite/${torneoId}/`;
+                        htmx.ajax('GET', path, '#main-content');
                     } else if (path.includes('tabellone-finale')) {
                         const torneoId = path.split('/').pop();
                         url = `/tabellone-finale/${torneoId}/`;

@@ -1,6 +1,8 @@
 # main/models.py
 from django.db import models
 from django.db.models import Q, Sum
+from django.utils.timezone import localtime
+from collections import defaultdict
 
 # main/models.py - Aggiungi queste proprietà alla classe Tournament
 
@@ -36,8 +38,26 @@ class Tournament(models.Model):
         return self.teams.count()
     
     @property
-    def recent_matches(self):
-        return self.matches.all().order_by('-id')[:5]
+    def matches_by_start_time(self):
+        """
+        Ritorna un dizionario con le partite raggruppate per orario (start_time).
+        """
+        grouped = defaultdict(list)
+        for match in self.matches.all().order_by('start_time'):
+            # Arrotonda l'orario a blocchi precisi (facoltativo)
+            key = localtime(match.start_time).strftime('%H:%M')
+            grouped[key].append(match)
+        return dict(grouped)
+    
+    def are_groups_filled(self):
+        # Assuming you want each group to have exactly 4 teams
+        required_teams_per_group = 4
+        groups = self.teams.values('group').annotate(count=models.Count('group'))
+
+        for group in groups:
+            if group['count'] < required_teams_per_group:
+                return False
+        return True
 
 class Player(models.Model):
     name = models.CharField(max_length=100)
@@ -55,10 +75,8 @@ class Team(models.Model):
     def __str__(self):
         return self.name
 
-    # Proprietà calcolata per ottenere i punti nel girone
     @property
     def group_points(self):
-        # 3 punti per la vittoria, 1 per il pareggio
         wins = Match.objects.filter(
             Q(team1=self, score_team1__gt=models.F('score_team2')) |
             Q(team2=self, score_team2__gt=models.F('score_team1')),
@@ -70,10 +88,37 @@ class Team(models.Model):
             stage='GROUP', is_finished=True
         ).count()
         return (wins * 3) + (draws * 1)
-        
+
+    @property
+    def goal_difference(self):
+        # Gol fatti
+        gf_as_team1 = Match.objects.filter(
+            team1=self, stage='GROUP', is_finished=True
+        ).aggregate(total=models.Sum('score_team1'))['total'] or 0
+
+        gf_as_team2 = Match.objects.filter(
+            team2=self, stage='GROUP', is_finished=True
+        ).aggregate(total=models.Sum('score_team2'))['total'] or 0
+
+        goals_for = gf_as_team1 + gf_as_team2
+
+        # Gol subiti
+        ga_as_team1 = Match.objects.filter(
+            team1=self, stage='GROUP', is_finished=True
+        ).aggregate(total=models.Sum('score_team2'))['total'] or 0
+
+        ga_as_team2 = Match.objects.filter(
+            team2=self, stage='GROUP', is_finished=True
+        ).aggregate(total=models.Sum('score_team1'))['total'] or 0
+
+        goals_against = ga_as_team1 + ga_as_team2
+
+        return goals_for - goals_against
+
+
     @property
     def games_played(self):
-         return Match.objects.filter(Q(team1=self) | Q(team2=self), stage='GROUP', is_finished=True).count()
+        return Match.objects.filter(Q(team1=self) | Q(team2=self), stage='GROUP', is_finished=True).count()
 
 class Match(models.Model):
     STAGE_CHOICES = [
@@ -92,7 +137,8 @@ class Match(models.Model):
     score_team2 = models.PositiveIntegerField(default=0)
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES)
     is_finished = models.BooleanField(default=False)
-    
+    start_time = models.DateTimeField(null=True, blank=True)  # ⬅️ AGGIUNTO
+
     @property
     def duration_minutes(self):
         return 30 if self.stage == 'GROUP' else 60

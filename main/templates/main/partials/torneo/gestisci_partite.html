@@ -1,20 +1,86 @@
-<div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">Gestisci Partite</h2>
-    <div class="space-y-4">
-        {% for match in matches %}
-        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-            <div>
-                <h3 class="font-semibold text-gray-800">{{ match.team1.name }} vs {{ match.team2.name }}</h3>
-                <p class="text-sm text-gray-600">{{ match.get_stage_display }}</p>
-            </div>
-            <div class="text-right">
-                {% if match.is_finished %}
-                <p class="font-semibold text-gray-800">{{ match.score_team1 }} - {{ match.score_team2 }}</p>
-                {% else %}
-                <p class="text-sm text-gray-600">Non giocata</p>
-                {% endif %}
-            </div>
+<div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800">Gestisci Partite</h2>
+            <button 
+                hx-get="{% url 'home_torneo' torneo.id %}" 
+                hx-push-url="{% url 'home_torneo' torneo.id %}"
+                hx-target="#main-content" 
+                hx-trigger="click"
+                hx-indicator="#main-spinner"
+                @click="activePage = 'main-home';"
+                class="bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300">
+                Torna alla home
+            </button>
         </div>
-        {% endfor %}
+
+        <div class="space-y-4">
+            {% for match in matches %}
+            <div id="match-{{ match.id }}" class="flex flex-col justify-between items-center p-4 bg-white border border-gray-200 rounded-lg">
+                <div class="flex flex-row gap-4 items-center">
+                    {% if torneo.status == 'GROUP_STAGE' %}
+                        {% if match.team1.group == 'A' %}
+                            <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                Girone {{ match.team1.group }}
+                            </div>
+                        {% else %}
+                            <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                Girone {{ match.team1.group }}
+                            </div>
+                        {% endif %}
+                    {% else %}
+                        {{ match.get_stage_display }}
+                    {% endif %}
+                    <p class="text-sm text-gray-500 flex flex-row gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 10"/>
+                        </svg>
+                        {{ match.start_time|date:"H:i" }}
+                    </p>
+                </div>
+
+                <div class="w-full flex flex-row justify-between items-center pt-2">
+                    <div class="w-fit font-semibold text-gray-800 flex-col h-full flex items-center">
+                        <h3 class="flex-1 text-lg font-semibold text-gray-800">{{ match.team1.name }}</h3>
+                        <h3 class="flex-1 font-semibold text-gray-800">-</h3>
+                        <h3 class="flex-1 text-lg font-semibold text-gray-800">{{ match.team2.name }}</h3>
+                    </div>
+
+                    {% if match.is_finished %}
+                    <!-- Risultato statico -->
+                    <div class="w-fit h-full flex flex-col items-center justify-center text-center px-4">
+                        <p class="text-lg font-bold text-gray-700">{{ match.score_team1 }} - {{ match.score_team2 }}</p>
+                        <p class="text-xs text-gray-500 italic">Risultato finale</p>
+                    </div>
+                    {% else %}
+                    <!-- Form per inserire risultati -->
+                    <form
+                        hx-post="{% url 'gestisci_partite' torneo.id %}" 
+                        hx-target="#main-torneo" 
+                        hx-swap="outerHTML"
+                        class="w-fit h-full flex flex-row items-center gap-4"
+                    >
+                        <div class="w-fit h-full flex flex-col items-center justify-end">
+                            <input type="hidden" name="match_id" value="{{ match.id }}">
+                            <input type="number" name="score_team1" value="{{ match.score_team1 }}" min="0" required
+                                class="rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
+                            <h3 class="font-semibold text-gray-800">-</h3>
+                            <input type="number" name="score_team2" value="{{ match.score_team2 }}" min="0" required
+                                class="rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
+                        </div>
+
+                        <div class="w-fit h-full flex flex-col items-center justify-end">
+                            <button type="submit"
+                                class="h-24 px-4 flex items-center justify-center bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                                Salva
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>
