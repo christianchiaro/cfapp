@@ -50,14 +50,18 @@ class Tournament(models.Model):
         return dict(grouped)
     
     def are_groups_filled(self):
-        # Assuming you want each group to have exactly 4 teams
         required_teams_per_group = 4
+
+        if self.teams.count() == 0:
+            return False  # ❗Nessuna squadra = gruppi non riempiti
+
         groups = self.teams.values('group').annotate(count=models.Count('group'))
 
         for group in groups:
             if group['count'] < required_teams_per_group:
                 return False
         return True
+
 
 class Player(models.Model):
     name = models.CharField(max_length=100)
