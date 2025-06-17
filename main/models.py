@@ -137,7 +137,8 @@ class Match(models.Model):
     score_team2 = models.PositiveIntegerField(default=0)
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES)
     is_finished = models.BooleanField(default=False)
-    start_time = models.DateTimeField(null=True, blank=True)  # ⬅️ AGGIUNTO
+    start_time = models.DateTimeField(null=True, blank=True)
+    field = models.PositiveSmallIntegerField(null=True, blank=True)
 
     @property
     def duration_minutes(self):

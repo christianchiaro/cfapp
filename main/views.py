@@ -9,7 +9,7 @@ from datetime import datetime
 from main.models import Tournament, Team, Player, Match
 from datetime import datetime, timedelta
 from itertools import combinations
-from collections import deque
+from collections import defaultdict, deque
 import random
 
 def aggiorna_messages(request):
@@ -213,59 +213,75 @@ def avvia_torneo_partial(request, torneo_id):
     torneo.save()
 
     def generate_schedule(torneo):
-        teams_by_group = {}
+        teams_by_group = defaultdict(list)
         for team in torneo.teams.all():
-            teams_by_group.setdefault(team.group, []).append(team)
+            teams_by_group[team.group].append(team)
 
-        matchups_by_group = {}
-        for group, teams in teams_by_group.items():
-            matchups_by_group[group] = deque(combinations(teams, 2))
+        matchups_by_group = {
+            group: deque(combinations(teams, 2))
+            for group, teams in teams_by_group.items()
+        }
 
         schedule = []
         start_time = torneo.start_date
         match_duration = timedelta(minutes=45)
 
+        team_field4_usage = defaultdict(int)  # Traccia quante volte ogni team ha giocato su campo 4
+
         while matchups_by_group['A'] or matchups_by_group['B']:
-            played_teams_A = set()
-            played_teams_B = set()
+            played_teams = set()
             round_matchups = []
 
-            # Process Group A (max 2 match)
-            count = 0
-            temp = deque()
-            while matchups_by_group['A'] and count < 2:
-                match = matchups_by_group['A'].popleft()
-                if match[0] not in played_teams_A and match[1] not in played_teams_A:
-                    round_matchups.append((match[0], match[1], 'A'))
-                    played_teams_A.update([match[0], match[1]])
-                    count += 1
-                else:
-                    temp.append(match)
-            matchups_by_group['A'].extend(temp)  # rimetti gli scartati alla fine
+            # Coda temporanea per reinserire match saltati
+            temp_matchups = {'A': deque(), 'B': deque()}
 
-            # Process Group B (max 2 match)
-            count = 0
-            temp = deque()
-            while matchups_by_group['B'] and count < 2:
-                match = matchups_by_group['B'].popleft()
-                if match[0] not in played_teams_B and match[1] not in played_teams_B:
-                    round_matchups.append((match[0], match[1], 'B'))
-                    played_teams_B.update([match[0], match[1]])
-                    count += 1
-                else:
-                    temp.append(match)
-            matchups_by_group['B'].extend(temp)
+            # Riempi un turno con al massimo 4 partite
+            while len(round_matchups) < 4:
+                for group in ['A', 'B']:
+                    if not matchups_by_group[group]:
+                        continue
+                    match = matchups_by_group[group].popleft()
+                    t1, t2 = match
 
-            # Aggiungi le 4 partite della giornata (2 per girone)
-            for team1, team2, group in round_matchups:
-                schedule.append({
-                    'tournament': torneo,
-                    'team1': team1,
-                    'team2': team2,
-                    'start_time': start_time,
-                    'stage': 'GROUP',
-                    'is_finished': False
-                })
+                    # Assicura che le squadre non abbiano già giocato in questo turno
+                    if t1 in played_teams or t2 in played_teams:
+                        temp_matchups[group].append(match)
+                        continue
+
+                    round_matchups.append((t1, t2, group))
+                    played_teams.update([t1, t2])
+
+                    if len(round_matchups) == 4:
+                        break
+
+            # Re-inserisce i match saltati
+            for group in ['A', 'B']:
+                matchups_by_group[group].extendleft(reversed(temp_matchups[group]))
+
+            # Assegna i campi 1-4 nel rispetto dei vincoli
+            assigned_fields = set()
+            for t1, t2, group in round_matchups:
+                for field in [1, 2, 3, 4]:
+                    if field in assigned_fields:
+                        continue
+                    if field == 4 and (team_field4_usage[t1] >= 2 or team_field4_usage[t2] >= 2):
+                        continue
+
+                    assigned_fields.add(field)
+                    if field == 4:
+                        team_field4_usage[t1] += 1
+                        team_field4_usage[t2] += 1
+
+                    schedule.append({
+                        'tournament': torneo,
+                        'team1': t1,
+                        'team2': t2,
+                        'start_time': start_time,
+                        'field': field,
+                        'stage': 'GROUP',
+                        'is_finished': False
+                    })
+                    break
 
             start_time += match_duration
 
@@ -283,6 +299,7 @@ def avvia_torneo_partial(request, torneo_id):
             stage=match_data['stage'],
             is_finished=match_data['is_finished'],
             start_time=match_data['start_time'],
+            field=match_data['field'],
         )
 
     if request.headers.get('HX-Request'):

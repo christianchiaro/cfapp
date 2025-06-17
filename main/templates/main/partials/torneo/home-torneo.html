@@ -312,13 +312,16 @@
                 {% for match in matches %}
                 <div class="flex items-center justify-between p-3 bg-white rounded-lg">
                     <div class="flex items-center space-x-4">
-                        <span class="flex-shrink-0 text-sm font-medium text-gray-600">
+                        <div class="flex flex-col text-sm text-gray-600">
                             {% if torneo.status == 'GROUP_STAGE' %}
-                                Girone {{ match.team1.group }}
+                                <span class="font-medium">Girone {{ match.team1.group }}</span>
                             {% else %}
-                                {{ match.get_stage_display }}
+                                <span class="font-medium">{{ match.get_stage_display }}</span>
                             {% endif %}
-                        </span>
+                            {% if match.field %}
+                                <span class="text-xs text-gray-500">Campo {{ match.field }}</span>
+                            {% endif %}
+                        </div>
                         <div class="flex items-center truncate overflow-hidden whitespace-nowrap">
                             <span class="font-semibold w-16 truncate overflow-hidden whitespace-nowrap flex items-center justify-end">{{ match.team1.name }}</span>
                             {% if match.is_finished %}
