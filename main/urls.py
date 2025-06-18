@@ -22,7 +22,8 @@ urlpatterns = [
     # Manage members
     path('gestisci-partecipanti/<int:torneo_id>/', views.gestisci_partecipanti_partial, name='gestisci_partecipanti'),
     path('gestisci-partecipanti/<int:torneo_id>/shuffle-partecipanti/', views.shuffle_partecipanti_partial, name='shuffle_partecipanti'),
-
+    # Regolamento
+    path('regolamento/<int:torneo_id>/', views.regolamento_partial, name='regolamento'),
     # Manage teams
     path('gestisci-squadre/<int:torneo_id>/', views.gestisci_squadre_partial, name='gestisci_squadre'),
     path('gestisci-squadre/<int:torneo_id>/create-team', views.gestisci_squadre_create_team, name='gestisci_squadre_create_team'),

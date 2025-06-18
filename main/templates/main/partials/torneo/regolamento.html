@@ -1,0 +1,44 @@
+<div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Regolamento</h2>
+        <p class="text-gray-600">
+            <ul class="list-disc pl-6 space-y-2">
+                <li>Due gironi da 4 squadre: Girone A e Girone B</li>
+                <li>Ogni squadra disputa 3 partite di girone</li>
+                <li>Durata partite girone: 30 minuti</li>
+                <li>Pausa tra partite: 15 minuti</li>
+            </ul>
+
+            <h3 class="text-lg font-semibold mt-6 mb-2">Fase a eliminazione diretta:</h3>
+
+            <ul class="list-disc pl-6 space-y-2">
+                <li>
+                    <strong>Semifinali e finaline (30 minuti):</strong>
+                    <ul class="list-[circle] pl-6 mt-1 space-y-1">
+                        <li>1A vs 2B</li>
+                        <li>2A vs 1B</li>
+                        <li>3A vs 3B (5º-6º posto)</li>
+                        <li>4A vs 4B (7º-8º posto)</li>
+                    </ul>
+                </li>
+                <li>
+                    <strong>Finali (1 ora):</strong>
+                    <ul class="list-[circle] pl-6 mt-1 space-y-1">
+                        <li>Finale (3º-4º posto) tra le perdenti delle semifinali</li>
+                        <li>Finale (1º-2º posto) tra le vincitrici delle semifinali</li>
+                    </ul>
+                </li>
+            </ul>
+        </p>
+    </div>
+    <!-- Home -->
+    <button
+        hx-get="{% url 'home_torneo' torneo.id %}" 
+        hx-push-url="{% url 'home_torneo' torneo.id %}"
+        hx-target="#main-content" 
+        hx-trigger="click"
+        hx-indicator="#main-spinner"
+        class="w-full bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300">
+        Torna alla home
+    </button>
+</div>

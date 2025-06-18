@@ -44,6 +44,20 @@
         </div>
     </div>
 
+    <!-- Regolamento -->
+    <button
+        hx-get="{% url 'regolamento' torneo.id %}" 
+        hx-push-url="{% url 'regolamento' torneo.id %}"
+        hx-target="#main-torneo" 
+        hx-indicator="#main-spinner"
+        hx-swap="outerHTML"
+        class="flex-shrink-0 w-full bg-gray-800 text-white h-10 px-4 rounded-md hover:bg-gray-900 focus:outline-none focus:ring-2 focus:ring-gray-900 focus:ring-offset-2 transition duration-300 flex flex-row gap-2 items-center justify-center">
+        <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path d="M15 12h-5"/><path d="M15 8h-5"/><path d="M19 17V5a2 2 0 0 0-2-2H4"/><path d="M8 21h12a2 2 0 0 0 2-2v-1a1 1 0 0 0-1-1H11a1 1 0 0 0-1 1v1a2 2 0 1 1-4 0V5a2 2 0 1 0-4 0v2a1 1 0 0 0 1 1h3"/>
+        </svg>
+        Regolamento
+    </button>
+
     <!-- Statistiche Rapide -->
     <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
         <div class="bg-white rounded-lg shadow-md p-4">

@@ -237,6 +237,14 @@ def shuffle_partecipanti_partial(request, torneo_id):
 
     return gestisci_partecipanti_partial(request, torneo_id)
 
+def regolamento_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    teams = torneo.teams.all()
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/regolamento.html', {'torneo': torneo, 'teams': teams})
+    else:
+        return render(request, 'base.html', {'torneo': torneo, 'teams': teams})
+
 def gestisci_squadre_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
     teams = torneo.teams.all()
