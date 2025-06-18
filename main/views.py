@@ -169,6 +169,12 @@ def shuffle_partecipanti_partial(request, torneo_id):
                     group=group
                 )
         else:
+            if not request.user.is_authenticated:
+                messages.error(request, f'Solo il mio capo supremo Christian può fare reshuffle.')
+                response = HttpResponse(status=500)
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+
             Team.objects.filter(tournament=torneo).delete()
             random.shuffle(players)
             for i in range(0, len(players), 2):
@@ -185,6 +191,7 @@ def shuffle_partecipanti_partial(request, torneo_id):
                 )
 
     return gestisci_partecipanti_partial(request, torneo_id)
+
 def gestisci_squadre_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
     teams = torneo.teams.all()
