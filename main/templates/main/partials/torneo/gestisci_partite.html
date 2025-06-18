@@ -40,11 +40,11 @@
                     </p>
                 </div>
 
-                <div class="w-full flex flex-row justify-between items-center pt-2">
-                    <div class="w-fit font-semibold text-gray-800 flex-col h-full flex items-center">
-                        <h3 class="flex-1 text-lg font-semibold text-gray-800">{{ match.team1.name }}</h3>
-                        <h3 class="flex-1 font-semibold text-gray-800">-</h3>
-                        <h3 class="flex-1 text-lg font-semibold text-gray-800">{{ match.team2.name }}</h3>
+                <div class="w-full flex flex-row items-center gap-2 pt-2">
+                    <div class="flex-1 h-24 flex flex-col justify-between items-center text-gray-800 font-semibold truncate overflow-hidden whitespace-nowrap">
+                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-center">{{ match.team1.name }}</div>
+                        <div class="flex-grow font-semibold text-gray-800">-</div>
+                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-center">{{ match.team2.name }}</div>
                     </div>
 
                     {% if match.is_finished %}
@@ -61,13 +61,13 @@
                         hx-swap="outerHTML"
                         class="w-fit h-full flex flex-row items-center gap-4"
                     >
-                        <div class="w-fit h-full flex flex-col items-center justify-end">
+                        <div class="w-fit h-24 flex flex-col items-center justify-center">
                             <input type="hidden" name="match_id" value="{{ match.id }}">
                             <input type="number" name="score_team1" value="{{ match.score_team1 }}" min="0" required
-                                class="rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
-                            <h3 class="font-semibold text-gray-800">-</h3>
+                                class="flex-shrink-0 rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
+                            <h3 class="flex-grow font-semibold text-gray-800 flex items-center justify-center">-</h3>
                             <input type="number" name="score_team2" value="{{ match.score_team2 }}" min="0" required
-                                class="rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
+                                class="flex-shrink-0 rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
                         </div>
 
                         <div class="w-fit h-full flex flex-col items-center justify-end">

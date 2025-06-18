@@ -124,20 +124,31 @@ def gestisci_partecipanti_partial(request, torneo_id):
         nome = request.POST.get("nome", "").strip()
         if nome:
             nome = nome.title()
-            player, created = Player.objects.get_or_create(name=nome)
 
-            # Se già esiste, controlla se è già in una squadra di questo torneo
-            if not created:
-                is_in_team = Team.objects.filter(tournament=torneo).filter(
-                    Q(player1=player) | Q(player2=player)
-                ).exists()
+            # Controlla se ha già raggiunto 16 partecipanti
+            player_ids = set(
+                Team.objects.filter(tournament=torneo).values_list('player1_id', flat=True)
+            ).union(
+                Team.objects.filter(tournament=torneo).values_list('player2_id', flat=True)
+            )
+            free_players = Player.objects.exclude(id__in=player_ids)
 
-                if is_in_team:
-                    messages.error(request, f"{player.name} è già in una squadra di questo torneo.")
-                else:
-                    messages.info(request, f"{player.name} era già presente, ma non assegnato a nessuna squadra.")
+            if Player.objects.count() >= 16 and nome not in [p.name for p in free_players]:
+                messages.error(request, "Hai raggiunto il numero massimo di 16 partecipanti.")
             else:
-                messages.success(request, f"Giocatore {player.name} aggiunto con successo.")
+                player, created = Player.objects.get_or_create(name=nome)
+
+                if not created:
+                    is_in_team = Team.objects.filter(tournament=torneo).filter(
+                        Q(player1=player) | Q(player2=player)
+                    ).exists()
+
+                    if is_in_team:
+                        messages.error(request, f"{player.name} è già in una squadra di questo torneo.")
+                    else:
+                        messages.info(request, f"{player.name} era già presente, ma non assegnato a nessuna squadra.")
+                else:
+                    messages.success(request, f"Giocatore {player.name} aggiunto con successo.")
 
     # 🔍 Aggiorna dati sempre
     players = Player.objects.all()
