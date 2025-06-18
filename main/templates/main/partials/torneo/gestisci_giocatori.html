@@ -1,0 +1,67 @@
+<div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
+    <div class="bg-white rounded-lg shadow-md p-4">
+        <h2 class="text-xl font-bold text-gray-800 mb-4">Aggiungi Partecipante</h2>
+        <form 
+            hx-post="{% url 'gestisci_partecipanti' torneo.id %}" 
+            hx-target="#main-torneo" 
+            hx-swap="outerHTML"
+            class="flex items-center gap-2"
+        >
+            <input type="text" name="nome" placeholder="Nome giocatore"
+                class="flex-grow px-3 h-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" required>
+            <button type="submit"
+                class="bg-green-600 text-white px-4 h-10 rounded-lg hover:bg-green-700 transition">
+                Aggiungi
+            </button>
+        </form>
+    </div>
+    <form 
+        hx-post="{% url 'shuffle_partecipanti' torneo.id %}" 
+        hx-target="#main-torneo" 
+        hx-swap="outerHTML"
+    >
+        <button type="submit"
+            class="w-full bg-purple-600 text-white h-10 px-4 rounded-md hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-purple-700 focus:ring-offset-2 transition duration-300">
+            🔀 Rimescola Giocatori e Squadre
+        </button>
+    </form>
+    <button 
+        hx-get="{% url 'home_torneo' torneo.id %}" 
+        hx-push-url="{% url 'home_torneo' torneo.id %}"
+        hx-target="#main-torneo" 
+        hx-trigger="click"
+        hx-indicator="#main-spinner"
+        @click="activePage = 'main-home';"
+        class="w-full bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300">
+        Torna alla home
+    </button>
+    <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {% for player, teams in player_teams.items %}
+        <div class="w-full flex flex-row items-center gap-2 bg-white rounded-lg p-4 shadow-md">
+            <div class="flex-grow flex flex-col">
+                <div class="font-semibold text-gray-800">{{ player.name }}</div>
+                <div class="text-sm text-gray-500">
+                    {% if teams %}
+                        {% for team in teams %}
+                            {{ team.name }}{% if not forloop.last %}, {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        Nessuna squadra
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {% if teams %}
+                    {% for team in teams %}
+                        {% if team.group %}Girone {{ team.group }}{% endif %}
+                        {% if not forloop.last %}, {% endif %}
+                    {% endfor %}
+                {% else %}
+                    Nessun girone
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+</div>  

@@ -65,6 +65,8 @@
                         url = `/classifica-gironi/${torneoId}/`;
                     } else if (path.includes('gestisci-partite')) {
                         htmx.ajax('GET', path, '#main-content');
+                    } else if (path.includes('gestisci-partecipanti')) {
+                        htmx.ajax('GET', path, '#main-content');
                     } else if (path.includes('tabellone-finale')) {
                         const torneoId = path.split('/').pop();
                         url = `/tabellone-finale/${torneoId}/`;

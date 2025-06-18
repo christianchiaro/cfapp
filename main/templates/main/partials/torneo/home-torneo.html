@@ -102,6 +102,18 @@
         {% if torneo.status == 'SETUP' %}
         <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
             <button 
+                hx-get="{% url 'gestisci_partecipanti' torneo.id %}" 
+                hx-push-url="{% url 'gestisci_partecipanti' torneo.id %}"
+                hx-target="#main-torneo" 
+                hx-indicator="#main-spinner"
+                hx-swap="outerHTML"
+                class="bg-orange-500 text-white p-4 rounded-lg hover:bg-orange-600 transition duration-300 text-center">
+                <i class="fas fa-users text-2xl mb-2"></i>
+                <p class="font-semibold">Aggiungi Partecipanti</p>
+                <p class="text-sm opacity-75">Per chi non ha ancora una squdra</p>
+            </button>
+
+            <button 
                 hx-get="{% url 'gestisci_squadre' torneo.id %}" 
                 hx-push-url="{% url 'gestisci_squadre' torneo.id %}"
                 hx-target="#main-torneo" 
@@ -109,8 +121,8 @@
                 hx-swap="outerHTML"
                 class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition duration-300 text-center">
                 <i class="fas fa-users text-2xl mb-2"></i>
-                <p class="font-semibold">Gestisci Squadre</p>
-                <p class="text-sm opacity-75">Aggiungi le squadre</p>
+                <p class="font-semibold">Aggiungi Squadre</p>
+                <p class="text-sm opacity-75">Per chi ha le idee chiare</p>
             </button>
             
             <button 

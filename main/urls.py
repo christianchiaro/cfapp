@@ -19,6 +19,10 @@ urlpatterns = [
     path('home-torneo/<int:torneo_id>/', views.home_torneo_partial, name='home_torneo'),
     # Elimina torneo
     path('elimina-torneo/<int:torneo_id>/', views.elimina_torneo_partial, name='elimina_torneo'),
+    # Manage members
+    path('gestisci-partecipanti/<int:torneo_id>/', views.gestisci_partecipanti_partial, name='gestisci_partecipanti'),
+    path('gestisci-partecipanti/<int:torneo_id>/shuffle-partecipanti/', views.shuffle_partecipanti_partial, name='shuffle_partecipanti'),
+
     # Manage teams
     path('gestisci-squadre/<int:torneo_id>/', views.gestisci_squadre_partial, name='gestisci_squadre'),
     path('gestisci-squadre/<int:torneo_id>/create-team', views.gestisci_squadre_create_team, name='gestisci_squadre_create_team'),

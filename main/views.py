@@ -8,9 +8,12 @@ from django.db.models import Q
 from datetime import datetime
 from main.models import Tournament, Team, Player, Match
 from datetime import datetime, timedelta
-from itertools import combinations
+from itertools import combinations, chain
 from collections import defaultdict, deque
 import random
+from django.db import transaction
+from django.utils.text import slugify
+
 
 def aggiorna_messages(request):
     html = render_to_string('main/partials/components/toasts/toast.html', request=request)
@@ -85,6 +88,103 @@ def home_torneo_partial(request, torneo_id):
     else:
         return render(request, 'base.html', {'torneo': torneo})
 
+def gestisci_partecipanti_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+
+    # 🔄 Se è POST, aggiungi partecipante
+    if request.method == "POST":
+        nome = request.POST.get("nome")
+        if nome:
+            Player.objects.create(name=nome)
+
+    # 🔍 Sempre aggiorna i dati
+    players = Player.objects.all()
+    player_teams = {
+        player: list(chain(
+            player.teams_p1.filter(tournament=torneo),
+            player.teams_p2.filter(tournament=torneo)
+        )) for player in players
+    }
+
+    context = {
+        'torneo': torneo,
+        'player_teams': player_teams,
+    }
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/gestisci_giocatori.html', context)
+    else:
+        return render(request, 'base.html', context)
+
+# Lista di almeno 50 nomi divertenti
+NOMI_DIVERTENTI = [
+    "Padeloni Furiosi", "Smash Brothers", "Gli Incordati", "Team Bandeja", "Padel No Cry",
+    "Ace Ventura", "La Doppia Parete", "I Ribattitori", "Let's Padel", "I Pallettari",
+    "Padel & Furious", "Gli Smashati", "Serve & Spritz", "Tanta Roba Padel", "Set & Muretto",
+    "Gli Scappati di Casa", "The Net Set", "Gli Acefali", "Smash & Go", "Team Vibora",
+    "Gli Arrabbiati", "The Racchettari", "Paddle Pop", "Racchette Spaziali", "Colpi Proibiti",
+    "Padelwood", "Viva la Vibora", "Tennis Who?", "Palla Viva", "Gli Padelisti Anonimi",
+    "Palle al Muro", "Doppio Fallo", "Gli Addobbati", "Match Pointless", "Gli Tappetoni",
+    "Re della Gabbia", "La Chiamata Out", "Padel is the New Black", "Gabbia Time",
+    "Paddle Express", "Team Pallonetto", "Sotto Rete", "Gli Padelizzati", "The 40-30",
+    "Bandeja Boys", "Non Vale il Vetri", "Palle Sgonfie", "Game, Set, Spritz",
+    "I Muri Parlano", "Stiamo a Padel", "Padel Power", "Break Time", "I Raccattapalle"
+]
+
+def shuffle_partecipanti_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+    players = list(Player.objects.all())
+
+    # Identifica giocatori già inseriti in una squadra del torneo
+    player_in_team_ids = set(chain(
+        Team.objects.filter(tournament=torneo).values_list('player1_id', flat=True),
+        Team.objects.filter(tournament=torneo).values_list('player2_id', flat=True),
+    ))
+    players_without = [p for p in players if p.id not in player_in_team_ids]
+
+    def generate_unique_name(used):
+        nome = random.choice(NOMI_DIVERTENTI)
+        k = 1
+        base = nome
+        while nome in used:
+            nome = f"{base} {k}"
+            k += 1
+        used.add(nome)
+        return nome
+
+    used_names = set()
+    with transaction.atomic():
+        if players_without:
+            random.shuffle(players_without)
+            for i in range(0, len(players_without), 2):
+                if i + 1 >= len(players_without): break
+                p1, p2 = players_without[i], players_without[i+1]
+                team_name = generate_unique_name(used_names)
+                group = random.choice(['A', 'B'])
+                Team.objects.create(
+                    name=team_name,
+                    tournament=torneo,
+                    player1=p1,
+                    player2=p2,
+                    group=group
+                )
+        else:
+            Team.objects.filter(tournament=torneo).delete()
+            random.shuffle(players)
+            for i in range(0, len(players), 2):
+                if i + 1 >= len(players): break
+                p1, p2 = players[i], players[i+1]
+                team_name = generate_unique_name(used_names)
+                group = random.choice(['A', 'B'])
+                Team.objects.create(
+                    name=team_name,
+                    tournament=torneo,
+                    player1=p1,
+                    player2=p2,
+                    group=group
+                )
+
+    return gestisci_partecipanti_partial(request, torneo_id)
 def gestisci_squadre_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
     teams = torneo.teams.all()
