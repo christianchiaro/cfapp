@@ -116,6 +116,47 @@ def gestisci_partecipanti_partial(request, torneo_id):
     else:
         return render(request, 'base.html', context)
 
+def gestisci_partecipanti_partial(request, torneo_id):
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+
+    # 🔄 Se è POST, prova ad aggiungere un partecipante
+    if request.method == "POST":
+        nome = request.POST.get("nome", "").strip()
+        if nome:
+            nome = nome.capitalize()
+            player, created = Player.objects.get_or_create(name=nome)
+
+            # Se già esiste, controlla se è già in una squadra di questo torneo
+            if not created:
+                is_in_team = Team.objects.filter(tournament=torneo).filter(
+                    Q(player1=player) | Q(player2=player)
+                ).exists()
+
+                if is_in_team:
+                    messages.error(request, f"{player.name} è già in una squadra di questo torneo.")
+                else:
+                    messages.info(request, f"{player.name} era già presente, ma non assegnato a nessuna squadra.")
+            else:
+                messages.success(request, f"Giocatore {player.name} aggiunto con successo.")
+
+    # 🔍 Aggiorna dati sempre
+    players = Player.objects.all()
+    player_teams = {
+        player: list(chain(
+            player.teams_p1.filter(tournament=torneo),
+            player.teams_p2.filter(tournament=torneo)
+        )) for player in players
+    }
+
+    context = {
+        'torneo': torneo,
+        'player_teams': player_teams,
+    }
+
+    response = render(request, 'main/partials/torneo/gestisci_giocatori.html', context)
+    response['HX-Trigger'] = 'refreshMessages'
+    return response
+
 # Lista di almeno 50 nomi divertenti
 NOMI_DIVERTENTI = [
     "Padeloni Furiosi", "Smash Brothers", "Gli Incordati", "Team Bandeja", "Padel No Cry",
@@ -123,10 +164,10 @@ NOMI_DIVERTENTI = [
     "Padel & Furious", "Gli Smashati", "Serve & Spritz", "Tanta Roba Padel", "Set & Muretto",
     "Gli Scappati di Casa", "The Net Set", "Gli Acefali", "Smash & Go", "Team Vibora",
     "Gli Arrabbiati", "The Racchettari", "Paddle Pop", "Racchette Spaziali", "Colpi Proibiti",
-    "Padelwood", "Viva la Vibora", "Tennis Who?", "Palla Viva", "Gli Padelisti Anonimi",
-    "Palle al Muro", "Doppio Fallo", "Gli Addobbati", "Match Pointless", "Gli Tappetoni",
+    "Padelwood", "Viva la Vibora", "Tennis Who?", "Palla Viva", "I Padelisti Anonimi",
+    "Palle al Muro", "Doppio Fallo", "Gli Addobbati", "Match Pointless", "I Tappetoni",
     "Re della Gabbia", "La Chiamata Out", "Padel is the New Black", "Gabbia Time",
-    "Paddle Express", "Team Pallonetto", "Sotto Rete", "Gli Padelizzati", "The 40-30",
+    "Paddle Express", "Team Pallonetto", "Sotto Rete", "I Padelizzati", "The 40-30",
     "Bandeja Boys", "Non Vale il Vetri", "Palle Sgonfie", "Game, Set, Spritz",
     "I Muri Parlano", "Stiamo a Padel", "Padel Power", "Break Time", "I Raccattapalle"
 ]
@@ -203,9 +244,9 @@ def gestisci_squadre_partial(request, torneo_id):
 def gestisci_squadre_create_team(request, torneo_id):
     """View per creare una nuova squadra"""
     if request.method == 'POST':
-        team_name = request.POST.get('team_name')
-        player1_name = request.POST.get('player1')
-        player2_name = request.POST.get('player2')
+        team_name = request.POST.get('team_name', '').strip().capitalize()
+        player1_name = request.POST.get('player1', '').strip().capitalize()
+        player2_name = request.POST.get('player2', '').strip().capitalize()
         group = request.POST.get('group')
         tournament_id = request.POST.get('tournament_id')
         torneo = get_object_or_404(Tournament, id=tournament_id)
