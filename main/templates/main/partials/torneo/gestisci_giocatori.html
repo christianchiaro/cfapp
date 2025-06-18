@@ -38,7 +38,7 @@
     <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {% for player, teams in player_teams.items %}
         <div class="w-full flex flex-row items-center gap-2 bg-white rounded-lg p-4 shadow-md">
-            <div class="flex-grow flex flex-col">
+            <div class="flex-grow flex flex-col truncate whitespace-nowrap overflow-hidden text-ellipsis">
                 <div class="font-semibold text-gray-800">{{ player.name }}</div>
                 <div class="text-sm text-gray-500">
                     {% if teams %}
@@ -51,7 +51,7 @@
                 </div>
             </div>
 
-            <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+            <div class="flex-shrink-0 whitespace-nowrap inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                 {% if teams %}
                     {% for team in teams %}
                         {% if team.group %}Girone {{ team.group }}{% endif %}

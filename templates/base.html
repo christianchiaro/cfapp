@@ -52,6 +52,8 @@
                         htmx.ajax('GET', path, '#main-content');
                     } else if (path.includes('gestisci-squadre')) {
                         htmx.ajax('GET', path, '#main-content');
+                    } else if (path.includes('gestisci-partecipanti')) {
+                        htmx.ajax('GET', path, '#main-content');
                     } else if (path.includes('crea-torneo')) {
                         htmx.ajax('GET', path, '#main-content');
                     } else if (path.includes('genera-gironi')) {
@@ -64,8 +66,6 @@
                         const torneoId = path.split('/').pop();
                         url = `/classifica-gironi/${torneoId}/`;
                     } else if (path.includes('gestisci-partite')) {
-                        htmx.ajax('GET', path, '#main-content');
-                    } else if (path.includes('gestisci-partecipanti')) {
                         htmx.ajax('GET', path, '#main-content');
                     } else if (path.includes('tabellone-finale')) {
                         const torneoId = path.split('/').pop();

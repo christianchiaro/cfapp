@@ -123,7 +123,7 @@ def gestisci_partecipanti_partial(request, torneo_id):
     if request.method == "POST":
         nome = request.POST.get("nome", "").strip()
         if nome:
-            nome = nome.capitalize()
+            nome = nome.title()
             player, created = Player.objects.get_or_create(name=nome)
 
             # Se già esiste, controlla se è già in una squadra di questo torneo
@@ -153,10 +153,14 @@ def gestisci_partecipanti_partial(request, torneo_id):
         'player_teams': player_teams,
     }
 
-    response = render(request, 'main/partials/torneo/gestisci_giocatori.html', context)
+    if request.headers.get('HX-Request'):
+        response = render(request, 'main/partials/torneo/gestisci_giocatori.html', context)
+    else:
+        response = render(request, 'base.html', context)
+
     response['HX-Trigger'] = 'refreshMessages'
     return response
-
+    
 # Lista di almeno 50 nomi divertenti
 NOMI_DIVERTENTI = [
     "Padeloni Furiosi", "Smash Brothers", "Gli Incordati", "Team Bandeja", "Padel No Cry",
@@ -244,9 +248,9 @@ def gestisci_squadre_partial(request, torneo_id):
 def gestisci_squadre_create_team(request, torneo_id):
     """View per creare una nuova squadra"""
     if request.method == 'POST':
-        team_name = request.POST.get('team_name', '').strip().capitalize()
-        player1_name = request.POST.get('player1', '').strip().capitalize()
-        player2_name = request.POST.get('player2', '').strip().capitalize()
+        team_name = request.POST.get('team_name', '').strip().title()
+        player1_name = request.POST.get('player1', '').strip().title()
+        player2_name = request.POST.get('player2', '').strip().title()
         group = request.POST.get('group')
         tournament_id = request.POST.get('tournament_id')
         torneo = get_object_or_404(Tournament, id=tournament_id)
