@@ -225,6 +225,13 @@ def gestisci_squadre_create_team(request, torneo_id):
                 response['HX-Trigger'] = 'refreshMessages'
                 return response
 
+            # Se non è loggato e specifica il girone, blocca
+            if group and not request.user.is_authenticated:
+                messages.error(request, 'Lascia il campo Girone vuoto. Non sei il mio capo supremo.')
+                response = HttpResponse(status=500)
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+            
             # Recupera gli oggetti
             tournament = get_object_or_404(Tournament, id=tournament_id)
             player1, created = Player.objects.get_or_create(name=player1_name)
@@ -315,6 +322,12 @@ def genera_gironi_partial(request, torneo_id):
         return render(request, 'base.html', {'torneo': torneo})
 
 def avvia_torneo_partial(request, torneo_id):
+    if not request.user.is_authenticated:
+        messages.error(request, "Solo il mio capo supremo Christian può avviare il torneo.")
+        response = HttpResponse(status=403)
+        response['HX-Trigger'] = 'refreshMessages'
+        return response
+    
     torneo = get_object_or_404(Tournament, id=torneo_id)
     torneo.status = 'GROUP_STAGE'
     torneo.save()
