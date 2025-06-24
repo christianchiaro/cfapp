@@ -42,14 +42,14 @@
 
                 <div class="w-full flex flex-row items-center gap-2 pt-2">
                     <div class="flex-1 h-24 flex flex-col justify-between items-center text-gray-800 font-semibold truncate overflow-hidden whitespace-nowrap">
-                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-center">{{ match.team1.name }}</div>
+                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-start w-full">{{ match.team1.name }}</div>
                         <div class="flex-grow font-semibold text-gray-800">-</div>
-                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-center">{{ match.team2.name }}</div>
+                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-start w-full">{{ match.team2.name }}</div>
                     </div>
 
                     {% if match.is_finished %}
                     <!-- Risultato statico -->
-                    <div class="w-fit h-full flex flex-col items-center justify-center text-center px-4">
+                    <div class="w-[176px] h-full flex flex-col items-end justify-center text-right px-4">
                         <p class="text-lg font-bold text-gray-700">{{ match.score_team1 }} - {{ match.score_team2 }}</p>
                         <p class="text-xs text-gray-500 italic">Risultato finale</p>
                     </div>
@@ -72,7 +72,7 @@
 
                         <div class="w-fit h-full flex flex-col items-center justify-end">
                             <button type="submit"
-                                class="h-24 px-4 flex items-center justify-center bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                                class="w-16 h-24 px-4 flex items-center justify-center bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
                                 Salva
                             </button>
                         </div>

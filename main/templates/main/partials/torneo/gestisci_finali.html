@@ -1,20 +1,111 @@
-<div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">Gestisci Finali</h2>
-    <div class="space-y-4">
-        {% for match in matches %}
-        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-            <div>
-                <h3 class="font-semibold text-gray-800">{{ match.team1.name }} vs {{ match.team2.name }}</h3>
-                <p class="text-sm text-gray-600">{{ match.get_stage_display }}</p>
-            </div>
-            <div class="text-right">
-                {% if match.is_finished %}
-                <p class="font-semibold text-gray-800">{{ match.score_team1 }} - {{ match.score_team2 }}</p>
-                {% else %}
-                <p class="text-sm text-gray-600">Non giocata</p>
-                {% endif %}
-            </div>
+<div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
+    <div class="bg-white rounded-lg shadow-md p-6">
+        <div class="flex justify-between items-center mb-4">
+            <h2 class="text-xl font-bold text-gray-800">Gestisci Fasi Finali</h2>
+            <button 
+                hx-get="{% url 'home_torneo' torneo.id %}" 
+                hx-push-url="{% url 'home_torneo' torneo.id %}"
+                hx-target="#main-content" 
+                hx-trigger="click"
+                hx-indicator="#main-spinner"
+                @click="activePage = 'main-home';"
+                class="bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300">
+                Torna alla home
+            </button>
         </div>
-        {% endfor %}
+
+        <div class="space-y-4">
+            {% for match in matches %}
+            <div id="match-{{ match.id }}" class="flex flex-col justify-between items-center p-4 bg-white border border-gray-200 rounded-lg">
+                <div class="flex flex-row gap-4 items-center">
+                    <div class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {{ match.get_stage_display }}
+                    </div>
+                    <p class="text-sm text-gray-500 flex flex-row gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 size-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <circle cx="12" cy="12" r="10"/>
+                            <polyline points="12 6 12 12 16 10"/>
+                        </svg>
+                        {{ match.start_time|date:"H:i" }}
+                    </p>
+                    {% if match.field %}
+                    <p class="text-sm text-gray-500 flex flex-row items-center gap-1">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path d="M5 3v18l7-4 7 4V3H5z" />
+                        </svg>
+                        Campo {{ match.field }}
+                    </p>
+                    {% endif %}
+                </div>
+
+                <div class="w-full flex flex-row items-center gap-2 pt-2">
+                    <div class="flex-1 h-24 flex flex-col justify-between items-center text-gray-800 font-semibold truncate overflow-hidden whitespace-nowrap">
+                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-start w-full">
+                            {% if match.team1 %}{{ match.team1.name }}{% else %}?{% endif %}
+                        </div>
+                        <div class="flex-grow flex items-center justify-center font-semibold text-gray-800">-</div>
+                        <div class="flex-shrink-0 h-[38px] text-lg font-semibold text-gray-800 flex items-center justify-start w-full">
+                            {% if match.team2 %}{{ match.team2.name }}{% else %}?{% endif %}
+                        </div>
+                    </div>
+
+                    {% if match.is_finished %}
+                    <!-- Risultato statico -->
+                    <div class="w-[176px] h-full flex flex-col items-end justify-center text-right px-4">
+                        <p class="text-lg font-bold text-gray-700">{{ match.score_team1 }} - {{ match.score_team2 }}</p>
+                        <p class="text-xs text-gray-500 italic">Risultato finale</p>
+                    </div>
+                    {% else %}
+                    <!-- Form per inserire risultati -->
+                    <form
+                        hx-post="{% url 'gestisci_finali' torneo.id %}" 
+                        hx-target="#main-torneo" 
+                        hx-swap="outerHTML"
+                        class="w-fit h-full flex flex-row items-center gap-4"
+                    >
+                        <div class="w-fit h-24 flex flex-col items-center justify-center">
+                            <input type="hidden" name="match_id" value="{{ match.id }}">
+                            {% if match.stage == 'FINAL_1_2' or match.stage == 'FINAL_3_4' %}
+                            <div class="h-24 flex flex-row gap-2">
+                                <!-- Set 1 -->
+                                <div class="h-24 flex flex-col">
+                                    <input type="number" name="set1_team1" value="{{ match.set1_team1 }}" min="0" 
+                                        class="rounded-lg px-2 py-1 border border-gray-200 w-12 text-lg font-semibold text-gray-800 text-right" />
+                                    <span class="flex-grow flex items-center justify-center font-semibold text-gray-800">-</span>
+                                    <input type="number" name="set1_team2" value="{{ match.set1_team2 }}" min="0" 
+                                        class="rounded-lg px-2 py-1 border border-gray-200 w-12 text-lg font-semibold text-gray-800 text-right" />
+                                </div>
+
+                                <!-- Set 2 -->
+                                <div class="h-24 flex flex-col">
+                                    <input type="number" name="set2_team1" value="{{ match.set2_team1 }}" min="0" 
+                                        class="rounded-lg px-2 py-1 border border-gray-200 w-12 text-lg font-semibold text-gray-800 text-right" />
+                                    <span class="flex-grow flex items-center justify-center font-semibold text-gray-800">-</span>
+                                    <input type="number" name="set2_team2" value="{{ match.set2_team2 }}" min="0" 
+                                        class="rounded-lg px-2 py-1 border border-gray-200 w-12 text-lg font-semibold text-gray-800 text-right" />
+                                </div>
+                            </div>
+
+                            {% else %}
+                            <input type="number" name="score_team1" value="{{ match.score_team1 }}" min="0" 
+                                class="flex-shrink-0 rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
+                            <h3 class="flex-grow font-semibold text-gray-800 flex items-center justify-center">-</h3>
+                            <input type="number" name="score_team2" value="{{ match.score_team2 }}" min="0" 
+                                class="flex-shrink-0 rounded-lg px-2 py-1 border border-gray-200 w-24 text-lg font-semibold text-gray-800 text-right" />
+                            {% endif %}
+                        </div>
+
+                        <div class="w-fit h-full flex flex-col items-center justify-end">
+                            <button type="submit"
+                                class="w-16 h-24 px-4 flex items-center justify-center bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition">
+                                Salva
+                            </button>
+                        </div>
+                    </form>
+                    {% endif %}
+                </div>
+            </div>
+            {% endfor %}
+        </div>
     </div>
 </div>

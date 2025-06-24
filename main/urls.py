@@ -31,10 +31,10 @@ urlpatterns = [
     path('genera-gironi/<int:torneo_id>/', views.genera_gironi_partial, name='genera_gironi'),
     # Start tournament
     path('avvia-torneo/<int:torneo_id>/', views.avvia_torneo_partial, name='avvia_torneo'),
-    # Group standings
-    path('classifica-gironi/<int:torneo_id>/', views.classifica_gironi_partial, name='classifica_gironi'),
     # Manage matches
     path('gestisci-partite/<int:torneo_id>/', views.gestisci_partite_partial, name='gestisci_partite'),
+    # Fase Finali tournament
+    path('avvia-fasi-finali/<int:torneo_id>/', views.avvia_fasi_finali_partial, name='avvia_fasi_finali'),
     # Final bracket
     path('tabellone-finale/<int:torneo_id>/', views.tabellone_finale_partial, name='tabellone_finale'),
     # Manage finals

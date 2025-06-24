@@ -1,20 +1,36 @@
-<div class="bg-white rounded-lg shadow-md p-6">
-    <h2 class="text-xl font-bold text-gray-800 mb-4">Tabellone Finale</h2>
-    <div class="space-y-4">
-        {% for match in matches %}
-        <div class="flex justify-between items-center p-4 bg-gray-50 rounded-lg">
-            <div>
-                <h3 class="font-semibold text-gray-800">{{ match.team1.name }} vs {{ match.team2.name }}</h3>
-                <p class="text-sm text-gray-600">{{ match.get_stage_display }}</p>
-            </div>
-            <div class="text-right">
-                {% if match.is_finished %}
-                <p class="font-semibold text-gray-800">{{ match.score_team1 }} - {{ match.score_team2 }}</p>
+<div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
+    <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        {% for team in torneo.final_rankings %}
+            <div class="p-4 bg-white border rounded-lg shadow text-center">
+                <div class="text-3xl font-bold mb-2">
+                    {% if forloop.counter == 1 %}
+                        🥇
+                    {% elif forloop.counter == 2 %}
+                        🥈
+                    {% elif forloop.counter == 3 %}
+                        🥉
+                    {% else %}
+                        {{ forloop.counter }}°
+                    {% endif %}
+                </div>
+                {% if team %}
+                    <div class="text-lg font-semibold text-gray-800">{{ team.name }}</div>
+                    <div class="text-sm text-gray-500">{{ team.player1.name }} & {{ team.player2.name }}</div>
                 {% else %}
-                <p class="text-sm text-gray-600">Non giocata</p>
+                    <div class="text-gray-400 italic text-sm">In attesa di risultato</div>
                 {% endif %}
             </div>
-        </div>
         {% endfor %}
     </div>
+
+    <!-- Home -->
+    <button
+        hx-get="{% url 'home_torneo' torneo.id %}" 
+        hx-push-url="{% url 'home_torneo' torneo.id %}"
+        hx-target="#main-content" 
+        hx-trigger="click"
+        hx-indicator="#main-spinner"
+        class="flex-shrink-0 w-full bg-gray-300 text-white h-10 px-4 rounded-md hover:bg-gray-400 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition duration-300">
+        Torna alla home
+    </button>
 </div>

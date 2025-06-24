@@ -22,7 +22,11 @@ class Tournament(models.Model):
     @property
     def matches_remaining_count(self):
         return self.matches.filter(is_finished=False).count()
-    
+
+    @property
+    def all_matches_finished(self):
+        return self.matches_remaining_count == 0
+
     @property
     def matches_total_count(self):
         return self.matches.count()
@@ -48,7 +52,43 @@ class Tournament(models.Model):
             key = localtime(match.start_time).strftime('%H:%M')
             grouped[key].append(match)
         return dict(grouped)
-    
+
+    @property
+    def standings_by_group(self):
+        """
+        Restituisce un dizionario con i team divisi per gruppo e ordinati
+        prima per punti, poi per differenza reti (goal_difference).
+        """
+        standings = defaultdict(list)
+        for team in self.teams.all():
+            if team.group:
+                standings[team.group].append(team)
+
+        for group in standings:
+            standings[group].sort(key=lambda t: (t.group_points, t.goal_difference), reverse=True)
+
+        return dict(standings)
+
+    @property
+    def final_rankings(self):
+        ranks = [None] * 8
+        stage_map = {
+            'FINAL_1_2': (0, 1),
+            'FINAL_3_4': (2, 3),
+            'FINAL_5_6': (4, 5),
+            'FINAL_7_8': (6, 7),
+        }
+
+        for stage, (winner_pos, loser_pos) in stage_map.items():
+            match = self.matches.filter(stage=stage, is_finished=True).first()
+            if match and match.team1 and match.team2:
+                winner = match.winner()
+                loser = match.team2 if winner == match.team1 else match.team1
+                ranks[winner_pos] = winner
+                ranks[loser_pos] = loser
+
+        return ranks
+
     def are_groups_filled(self):
         required_teams_per_group = 4
 
@@ -61,7 +101,6 @@ class Tournament(models.Model):
             if group['count'] < required_teams_per_group:
                 return False
         return True
-
 
 class Player(models.Model):
     name = models.CharField(max_length=100)
@@ -127,18 +166,22 @@ class Team(models.Model):
 class Match(models.Model):
     STAGE_CHOICES = [
         ('GROUP', 'Group Stage'),
-        ('SEMI_FINAL', 'Semi Final'),
-        ('FINAL_1_2', 'Final 1st-2nd'),
-        ('FINAL_3_4', 'Final 3rd-4th'),
-        ('FINAL_5_6', 'Final 5th-6th'),
-        ('FINAL_7_8', 'Final 7th-8th'),
+        ('SEMI_FINAL', 'Semifinale'),
+        ('FINAL_1_2', 'Finale'),
+        ('FINAL_3_4', '3º-4º posto'),
+        ('FINAL_5_6', '5º-6º posto'),
+        ('FINAL_7_8', '7º-8º posto'),
     ]
 
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='matches')
-    team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_as_team1')
-    team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_as_team2')
+    team1 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_as_team1', null=True, blank=True)
+    team2 = models.ForeignKey(Team, on_delete=models.CASCADE, related_name='matches_as_team2', null=True, blank=True)
     score_team1 = models.PositiveIntegerField(default=0)
     score_team2 = models.PositiveIntegerField(default=0)
+    set1_team1 = models.PositiveIntegerField(null=True, blank=True)
+    set1_team2 = models.PositiveIntegerField(null=True, blank=True)
+    set2_team1 = models.PositiveIntegerField(null=True, blank=True)
+    set2_team2 = models.PositiveIntegerField(null=True, blank=True)
     stage = models.CharField(max_length=20, choices=STAGE_CHOICES)
     is_finished = models.BooleanField(default=False)
     start_time = models.DateTimeField(null=True, blank=True)
@@ -148,5 +191,21 @@ class Match(models.Model):
     def duration_minutes(self):
         return 30 if self.stage == 'GROUP' else 60
 
-    def __str__(self):
-        return f"{self.team1} vs {self.team2} ({self.get_stage_display()})"
+    def winner(self):
+        if not self.is_finished or not self.team1 or not self.team2:
+            return None
+
+        if self.stage in ['FINAL_1_2', 'FINAL_3_4']:
+            team1_sets = (self.set1_team1 > self.set1_team2) + (self.set2_team1 > self.set2_team2)
+            team2_sets = (self.set1_team2 > self.set1_team1) + (self.set2_team2 > self.set2_team1)
+
+            if team1_sets > team2_sets:
+                return self.team1
+            elif team2_sets > team1_sets:
+                return self.team2
+            else:
+                punti_team1 = (self.set1_team1 or 0) + (self.set2_team1 or 0)
+                punti_team2 = (self.set1_team2 or 0) + (self.set2_team2 or 0)
+                return self.team1 if punti_team1 > punti_team2 else self.team2
+        else:
+            return self.team1 if self.score_team1 > self.score_team2 else self.team2

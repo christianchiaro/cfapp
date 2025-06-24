@@ -4,16 +4,16 @@ from django.http import HttpResponse
 from django.contrib import messages
 from django.template.loader import render_to_string
 from django.db import IntegrityError
-from django.db.models import Q
-from datetime import datetime
+from django.db.models import Count, Q
+from django.utils.timezone import make_aware
+from datetime import datetime, time, timedelta
 from main.models import Tournament, Team, Player, Match
-from datetime import datetime, timedelta
 from itertools import combinations, chain
 from collections import defaultdict, deque
 import random
 from django.db import transaction
 from django.utils.text import slugify
-
+from django.db import transaction
 
 def aggiorna_messages(request):
     html = render_to_string('main/partials/components/toasts/toast.html', request=request)
@@ -491,14 +491,124 @@ def avvia_torneo_partial(request, torneo_id):
     else:
         return render(request, 'base.html', {'torneo': torneo})
 
-def classifica_gironi_partial(request, torneo_id):
-    torneo = get_object_or_404(Tournament, id=torneo_id)
-    teams = torneo.teams.all().order_by('-group_points', 'name')
-    if request.headers.get('HX-Request'):
-        return render(request, 'main/partials/torneo/classifica_gironi.html', {'torneo': torneo, 'teams': teams})
-    else:
-        return render(request, 'base.html', {'torneo': torneo, 'teams': teams})
+def avvia_fasi_finali_partial(request, torneo_id):
+    if not request.user.is_authenticated:
+        messages.error(request, "Solo il mio capo supremo Christian può avviare le fasi finali.")
+        response = HttpResponse(status=403)
+        response['HX-Trigger'] = 'refreshMessages'
+        return response
 
+    torneo = get_object_or_404(Tournament, id=torneo_id)
+
+    # Classifica per gruppo
+    def classifica_gruppo(gruppo):
+        squadre = list(Team.objects.filter(tournament=torneo, group=gruppo))
+        return sorted(
+            squadre,
+            key=lambda t: (t.group_points, t.goal_difference),
+            reverse=True
+        )
+
+    classifica_A = classifica_gruppo('A')
+    classifica_B = classifica_gruppo('B')
+
+    if len(classifica_A) < 4 or len(classifica_B) < 4:
+        messages.error(request, "Non ci sono abbastanza squadre per avviare le fasi finali.")
+        response = HttpResponse(status=400)
+        response['HX-Trigger'] = 'refreshMessages'
+        return response
+
+    # Semifinali + finaline 5/6 e 7/8
+    partite = [
+        ('SEMI_FINAL', classifica_A[0], classifica_B[1]),  # 1A vs 2B
+        ('SEMI_FINAL', classifica_B[0], classifica_A[1]),  # 1B vs 2A
+        ('FINAL_5_6', classifica_A[2], classifica_B[2]),   # 3A vs 3B
+        ('FINAL_7_8', classifica_A[3], classifica_B[3]),   # 4A vs 4B
+    ]
+
+    # Conta usi di campo 4
+    team_field4_usage = defaultdict(int)
+    for match in torneo.matches.filter(field=4):
+        team_field4_usage[match.team1] += 1
+        team_field4_usage[match.team2] += 1
+
+    # Campo preferenziale se non occupato
+    def scegli_campo(t1, t2, occupati):
+        for campo in range(1, 5):
+            if campo in occupati:
+                continue
+            if campo == 4:
+                if t1 and team_field4_usage[t1] >= 2:
+                    continue
+                if t2 and team_field4_usage[t2] >= 2:
+                    continue
+            if campo == 4:
+                if t1:
+                    team_field4_usage[t1] += 1
+                if t2:
+                    team_field4_usage[t2] += 1
+            return campo
+        return 1
+
+    nuove_partite = []
+
+    # Evita doppioni
+    if torneo.matches.filter(stage__in=[s for s, *_ in partite + partite_finali]).exists():
+        messages.warning(request, "Le fasi finali sembrano già essere state create.")
+        response = HttpResponse(status=400)
+        response['HX-Trigger'] = 'refreshMessages'
+        return response
+
+    # Semifinali + finali 5/6, 7/8 → 16:15
+    start_time_16_15 = make_aware(datetime.combine(torneo.start_date.date(), time(hour=16, minute=15)))
+    durata_30min = timedelta(minutes=30)
+    for stage, t1, t2 in partite:
+        # 🔒 Escludi solo i campi già occupati a quell'orario
+        campi_occupati = [
+            m['field'] for m in nuove_partite
+            if m['start_time'] == start_time_16_15
+        ]
+        campo = scegli_campo(t1, t2, campi_occupati)
+        nuove_partite.append({
+            'tournament': torneo,
+            'team1': t1,
+            'team2': t2,
+            'start_time': start_time_16_15,
+            'field': campo,
+            'stage': stage,
+            'is_finished': False
+        })
+
+    # Finali 1º-2º e 3º-4º → 17:00, senza squadre
+    start_time_17 = make_aware(datetime.combine(torneo.start_date.date(), time(hour=17, minute=0)))
+    partite_finali = [
+        ('FINAL_1_2', None, None),
+        ('FINAL_3_4', None, None),
+    ]
+    for stage, t1, t2 in partite_finali:
+        campo = scegli_campo(t1, t2, [m['field'] for m in nuove_partite])
+        nuove_partite.append({
+            'tournament': torneo,
+            'team1': t1,
+            'team2': t2,
+            'start_time': start_time_17,
+            'field': campo,
+            'stage': stage,
+            'is_finished': False
+        })
+
+    # Salva nel DB
+    for match_data in nuove_partite:
+        Match.objects.create(**match_data)
+
+    torneo.status = 'KNOCKOUT'
+    torneo.save()
+
+    if request.headers.get('HX-Request'):
+        return render(request, 'main/partials/torneo/home-torneo.html', {'torneo': torneo})
+    else:
+        return render(request, 'base.html', {'torneo': torneo})
+ 
 def gestisci_partite_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
 
@@ -544,11 +654,122 @@ def tabellone_finale_partial(request, torneo_id):
 
 def gestisci_finali_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)
-    matches = torneo.matches.filter(stage__in=['SEMI_FINAL', 'FINAL_1_2', 'FINAL_3_4', 'FINAL_5_6', 'FINAL_7_8'])
+
+    if request.method == 'POST':
+        match_id = request.POST.get("match_id")
+
+        if match_id:
+            try:
+                with transaction.atomic():
+                    match = Match.objects.get(id=match_id, tournament=torneo)
+
+                    # 🏁 Salvataggio risultati
+                    if match.stage in ['FINAL_1_2', 'FINAL_3_4']:
+                        s1t1 = request.POST.get("set1_team1")
+                        s1t2 = request.POST.get("set1_team2")
+                        s2t1 = request.POST.get("set2_team1")
+                        s2t2 = request.POST.get("set2_team2")
+
+                        set1_team1 = int(s1t1) if s1t1 else None
+                        set1_team2 = int(s1t2) if s1t2 else None
+                        set2_team1 = int(s2t1) if s2t1 else None
+                        set2_team2 = int(s2t2) if s2t2 else None
+
+                        match.set1_team1 = set1_team1 or 0
+                        match.set1_team2 = set1_team2 or 0
+                        match.set2_team1 = set2_team1 or 0
+                        match.set2_team2 = set2_team2 or 0
+
+                        # ⚖️ Calcolo del punteggio virtuale per definire il vincitore
+                        set_wins_team1 = 0
+                        set_wins_team2 = 0
+                        total_points_team1 = 0
+                        total_points_team2 = 0
+
+                        if set1_team1 is not None and set1_team2 is not None:
+                            if set1_team1 > set1_team2:
+                                set_wins_team1 += 1
+                            elif set1_team2 > set1_team1:
+                                set_wins_team2 += 1
+                            total_points_team1 += set1_team1
+                            total_points_team2 += set1_team2
+
+                        if set2_team1 is not None and set2_team2 is not None:
+                            if set2_team1 > set2_team2:
+                                set_wins_team1 += 1
+                            elif set2_team2 > set2_team1:
+                                set_wins_team2 += 1
+                            total_points_team1 += set2_team1
+                            total_points_team2 += set2_team2
+
+                        # Determina il vincitore
+                        if set_wins_team1 > set_wins_team2:
+                            match.score_team1 = 2
+                            match.score_team2 = 0
+                        elif set_wins_team2 > set_wins_team1:
+                            match.score_team1 = 0
+                            match.score_team2 = 2
+                        else:
+                            # Parità di set, decidi con differenza punti
+                            if total_points_team1 > total_points_team2:
+                                match.score_team1 = 2
+                                match.score_team2 = 1
+                            else:
+                                match.score_team1 = 1
+                                match.score_team2 = 2
+
+                    else:
+                        match.score_team1 = int(request.POST.get("score_team1", 0))
+                        match.score_team2 = int(request.POST.get("score_team2", 0))
+
+                    match.is_finished = True
+                    match.save()
+
+                    # ⚔️ Se è SEMI_FINAL → aggiorna FINAL_1_2 e FINAL_3_4
+                    if match.stage == 'SEMI_FINAL' and match.team1 and match.team2:
+                        team_winner = match.team1 if match.score_team1 > match.score_team2 else match.team2
+                        team_loser = match.team2 if team_winner == match.team1 else match.team1
+
+                        semi_finals = list(Match.objects.filter(tournament=torneo, stage='SEMI_FINAL').order_by('start_time'))
+                        index = semi_finals.index(match)
+
+                        finale_1_2 = Match.objects.filter(tournament=torneo, stage='FINAL_1_2').first()
+                        finale_3_4 = Match.objects.filter(tournament=torneo, stage='FINAL_3_4').first()
+
+                        if index == 0:
+                            if finale_1_2:
+                                finale_1_2.team1 = team_winner
+                                finale_1_2.save()
+                            if finale_3_4:
+                                finale_3_4.team1 = team_loser
+                                finale_3_4.save()
+                        elif index == 1:
+                            if finale_1_2:
+                                finale_1_2.team2 = team_winner
+                                finale_1_2.save()
+                            if finale_3_4:
+                                finale_3_4.team2 = team_loser
+                                finale_3_4.save()
+
+            except (Match.DoesNotExist, ValueError, IndexError):
+                messages.error(request, "Qualcosa è andato storto.")
+                response = HttpResponse(status=400)
+                response['HX-Trigger'] = 'refreshMessages'
+                return response
+
+    matches = torneo.matches.filter(stage__in=[
+        'SEMI_FINAL', 'FINAL_1_2', 'FINAL_3_4', 'FINAL_5_6', 'FINAL_7_8'
+    ]).order_by('start_time')
+
+    context = {
+        'torneo': torneo,
+        'matches': matches
+    }
+
     if request.headers.get('HX-Request'):
-        return render(request, 'main/partials/torneo/gestisci_finali.html', {'torneo': torneo, 'matches': matches})
+        return render(request, 'main/partials/torneo/gestisci_finali.html', context)
     else:
-        return render(request, 'base.html', {'torneo': torneo, 'matches': matches})
+        return render(request, 'base.html', context)
 
 def classifica_finale_partial(request, torneo_id):
     torneo = get_object_or_404(Tournament, id=torneo_id)

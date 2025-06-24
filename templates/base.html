@@ -69,12 +69,10 @@
                         url = `/classifica-gironi/${torneoId}/`;
                     } else if (path.includes('gestisci-partite')) {
                         htmx.ajax('GET', path, '#main-content');
-                    } else if (path.includes('tabellone-finale')) {
-                        const torneoId = path.split('/').pop();
-                        url = `/tabellone-finale/${torneoId}/`;
                     } else if (path.includes('gestisci-finali')) {
-                        const torneoId = path.split('/').pop();
-                        url = `/gestisci-finali/${torneoId}/`;
+                        htmx.ajax('GET', path, '#main-content');
+                    } else if (path.includes('tabellone-finale')) {
+                        htmx.ajax('GET', path, '#main-content');
                     } else if (path.includes('classifica-finale')) {
                         const torneoId = path.split('/').pop();
                         url = `/classifica-finale/${torneoId}/`;

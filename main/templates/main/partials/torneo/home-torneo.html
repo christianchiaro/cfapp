@@ -1,4 +1,5 @@
 {% load tz %}
+{% load filters %}
 
 <div id="main-torneo" class="flex-1 flex flex-col overflow-y-auto relative p-4 gap-4">
     <!-- Header del Torneo -->
@@ -165,16 +166,6 @@
         </div>
         {% elif torneo.status == 'GROUP_STAGE' %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <button 
-                hx-get="{% url 'classifica_gironi' torneo.id %}" 
-                hx-push-url="{% url 'classifica_gironi' torneo.id %}"
-                hx-target="#main-torneo" 
-                hx-indicator="#main-spinner"
-                class="bg-blue-500 text-white p-4 rounded-lg hover:bg-blue-600 transition duration-300 text-center">
-                <i class="fas fa-list-ol text-2xl mb-2"></i>
-                <p class="font-semibold">Classifica Gironi</p>
-                <p class="text-sm opacity-75">Visualizza le classifiche</p>
-            </button>
             
             <button 
                 hx-get="{% url 'gestisci_partite' torneo.id %}" 
@@ -187,6 +178,18 @@
                 <p class="font-semibold">Gestisci Partite</p>
                 <p class="text-sm opacity-75">Inserisci risultati</p>
             </button>
+
+            <button 
+                hx-post="{% url 'avvia_fasi_finali' torneo.id %}" 
+                hx-target="#main-content" 
+                hx-indicator="#main-spinner"
+                {% if not torneo.all_matches_finished %}disabled{% endif %}
+                class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition duration-300 text-center
+                       {% if not torneo.are_groups_filled %}opacity-50 cursor-not-allowed{% endif %}">
+                <i class="fas fa-play text-2xl mb-2"></i>
+                <p class="font-semibold">Avvia Fasi Finali</p>
+                <p class="text-sm opacity-75">Concludi la fase a gironi</p>
+            </button>
         </div>
         {% elif torneo.status == 'KNOCKOUT' %}
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -195,10 +198,11 @@
                 hx-push-url="{% url 'tabellone_finale' torneo.id %}"
                 hx-target="#main-torneo" 
                 hx-indicator="#main-spinner"
+                hx-swap="outerHTML"
                 class="bg-purple-500 text-white p-4 rounded-lg hover:bg-purple-600 transition duration-300 text-center">
                 <i class="fas fa-sitemap text-2xl mb-2"></i>
                 <p class="font-semibold">Tabellone Finale</p>
-                <p class="text-sm opacity-75">Visualizza le finali</p>
+                <p class="text-sm opacity-75">Visualizza i piazzamenti finali</p>
             </button>
             
             <button 
@@ -206,6 +210,7 @@
                 hx-push-url="{% url 'gestisci_finali' torneo.id %}"
                 hx-target="#main-torneo" 
                 hx-indicator="#main-spinner"
+                hx-swap="outerHTML"
                 class="bg-red-500 text-white p-4 rounded-lg hover:bg-red-600 transition duration-300 text-center">
                 <i class="fas fa-trophy text-2xl mb-2"></i>
                 <p class="font-semibold">Gestisci Finali</p>
@@ -230,7 +235,7 @@
 
     <!-- Anteprima Squadre (se esistono) -->
     {% if torneo.teams.exists %}
-    <div id="squadre-partecipanti" class="bg-white rounded-lg shadow-md {% if torneo.status == 'SETUP' %}p-6 {% elif torneo.status == 'GROUP_STAGE' %}py-6{% endif %}">
+    <div id="squadre-partecipanti" class="bg-white rounded-lg shadow-md {% if torneo.status == 'SETUP' %}p-6 {% elif torneo.status == 'GROUP_STAGE' or torneo.status == 'KNOCKOUT' %}py-6{% endif %}">
         {% if torneo.status == 'SETUP' %}
         <div class="flex justify-between items-center mb-4">
             <h2 class="text-xl font-bold text-gray-800">Squadre Partecipanti</h2>
@@ -255,7 +260,7 @@
             {% endfor %}
         </div>
 
-        {% elif torneo.status == 'GROUP_STAGE' %}
+        {% else %}
         <div class="flex justify-between items-center mx-4 mb-4">
             <h2 class="text-xl font-bold text-gray-800">Classifiche Gironi</h2>
             <svg xmlns="http://www.w3.org/2000/svg" class="flex-shrink-0 size-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -268,108 +273,162 @@
             <div class="flex-1 flex flex-row overflow-hidden">
                 <!-- Horizontally scrollable container -->
                 <div class="w-fit overflow-x-auto scrollbar-hide flex flex-row pr-4">
-                    <!-- Group A Standings -->
-                    <div class="flex-shrink-0 w-full bg-white border border-gray-200 rounded-lg p-4" style="width: calc(100% - 16px); margin-left: 16px; margin-right: 10px;">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">Girone A</h3>
-                        <div class="w-full flex flex-row items-center justify-end rounded-lg px-4 pb-1 gap-2">
-                            <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">DP</div>
-                            <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">PG</div>
-                            <div class="text-sm font-bold text-gray-700 w-6 text-right flex-shrink-0">PT</div>
-                        </div>
-                        <div class="flex-1 grid grid-cols-1 gap-4">
-                            {% for team in torneo.teams.all|dictsort:"group_points"|dictsortreversed:"group_points" %}
-                            {% if team.group == 'A' %}
-                                <div class="w-full flex flex-row items-center gap-2 border border-gray-200 rounded-lg p-4">
-                                    <div class="flex-grow flex flex-col truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                                        <div class="font-semibold text-gray-800">{{ team.name }}</div>
-                                        <div class="text-sm text-gray-500">{{ team.player1.name }} - {{ team.player2.name }}</div>
-                                    </div>
-                                    <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">{{ team.goal_difference }}</div>
-                                    <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">{{ team.games_played }}</div>
-                                    <div class="text-sm font-bold text-gray-700 w-6 text-right flex-shrink-0">{{ team.group_points }}</div>
+                {% group_list as groups %}
+                {% for group in groups %}
+                    {% with torneo.standings_by_group|get_item:group as teams %}
+                        {% if teams %}
+                            <div class="flex-shrink-0 w-full bg-white border border-gray-200 rounded-lg p-4 {% if forloop.first %}mr-[10px]{% endif %}" style="width: calc(100% - 16px); margin-left: 16px;">
+                                <h3 class="text-lg font-bold text-gray-800 mb-4">Girone {{ group }}</h3>
+                                <div class="w-full flex flex-row items-center justify-end rounded-lg px-4 pb-1 gap-2">
+                                    <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">PG</div>
+                                    <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">DP</div>
+                                    <div class="text-sm font-bold text-gray-700 w-6 text-right flex-shrink-0">PT</div>
                                 </div>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
-
-                    <!-- Group B Standings -->
-                    <div class="flex-shrink-0 w-full bg-white border border-gray-200 rounded-lg p-4" style="width: calc(100% - 16px);">
-                        <h3 class="text-lg font-bold text-gray-800 mb-4">Girone B</h3>
-                        <div class="w-full flex flex-row items-center justify-end rounded-lg px-4 pb-1 gap-2">
-                            <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">PG</div>
-                            <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">DP</div>
-                            <div class="text-sm font-bold text-gray-700 w-6 text-right flex-shrink-0">PT</div>
-                        </div>
-                        <div class="flex-1 grid grid-cols-1 gap-4">
-                            {% for team in torneo.teams.all|dictsort:"group_points"|dictsortreversed:"group_points" %}
-                            {% if team.group == 'B' %}
-                                <div class="w-full flex flex-row items-center gap-2 border border-gray-200 rounded-lg p-4">
-                                    <div class="flex-grow flex flex-col truncate whitespace-nowrap overflow-hidden text-ellipsis">
-                                        <div class="font-semibold text-gray-800">{{ team.name }}</div>
-                                        <div class="text-sm text-gray-500">{{ team.player1.name }} - {{ team.player2.name }}</div>
-                                    </div>
-                                    <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">{{ team.games_played }}</div>
-                                    <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">{{ team.goal_difference }}</div>
-                                    <div class="text-sm font-bold text-gray-700 w-6 text-right flex-shrink-0">{{ team.group_points }}</div>
+                                <div class="flex-1 grid grid-cols-1 gap-4">
+                                    {% for team in teams %}
+                                        <div class="w-full flex flex-row items-center gap-2 border border-gray-200 rounded-lg p-4">
+                                            <div class="flex-grow flex flex-col truncate whitespace-nowrap overflow-hidden text-ellipsis">
+                                                <div class="font-semibold text-gray-800">{{ team.name }}</div>
+                                                <div class="text-sm text-gray-500">{{ team.player1.name }} - {{ team.player2.name }}</div>
+                                            </div>
+                                            <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">{{ team.games_played }}</div>
+                                            <div class="text-sm text-gray-700 w-6 text-right flex-shrink-0">{{ team.goal_difference }}</div>
+                                            <div class="text-sm font-bold text-gray-700 w-6 text-right flex-shrink-0">{{ team.group_points }}</div>
+                                        </div>
+                                    {% endfor %}
                                 </div>
-                            {% endif %}
-                            {% endfor %}
-                        </div>
-                    </div>
+                            </div>
+                        {% endif %}
+                    {% endwith %}
+                {% endfor %}
                 </div>
             </div>
         </div>
         {% endif %}
-
     </div>
     {% endif %}
 
     <!-- Calendario -->
     {% if torneo.matches.exists %}
     <div class="flex justify-between items-center px-4 mt-4">
-        <h2 class="text-xl font-bold text-gray-800">Calendario gironi</h2>
+        <h2 class="text-xl font-bold text-gray-800">
+            {% if torneo.status == 'GROUP_STAGE' and match.stage == 'GROUP' %}
+                Calendario gironi
+            {% elif torneo.status == 'KNOCKOUT' and match.stage != 'GROUP' %}
+                Calendario fasi finali
+            {% endif %}
+        </h2>
     </div>
     <div class="space-y-6">
-    {% for time, matches in torneo.matches_by_start_time.items %}
-        <div>
-            <h3 class="text-lg font-bold text-gray-700 px-4">{{ time }}</h3>
-            <div class="space-y-2 mt-2">
-                {% for match in matches %}
-                <div class="flex items-center justify-between p-3 bg-white rounded-lg">
-                    <div class="flex items-center space-x-4">
-                        <div class="flex flex-col text-sm text-gray-600">
-                            {% if torneo.status == 'GROUP_STAGE' %}
-                                <span class="font-medium">Girone {{ match.team1.group }}</span>
-                            {% else %}
-                                <span class="font-medium">{{ match.get_stage_display }}</span>
-                            {% endif %}
-                            {% if match.field %}
-                                <span class="text-xs text-gray-500">Campo {{ match.field }}</span>
-                            {% endif %}
+        {% load filters %}
+        {% for time, matches in torneo.matches_by_start_time.items %}
+            {% if torneo.status == 'GROUP_STAGE' %}
+                {% with matches|filter_by_stage:"GROUP" as filtered_matches %}
+                    {% if filtered_matches %}
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-700 px-4">{{ time }}</h3>
+                            <div class="space-y-2 mt-2">
+                                {% for match in filtered_matches %}
+                                    <!-- MATCH DEL GIRONE -->
+                                    <div class="flex items-center justify-between p-3 bg-white rounded-lg">
+                                        <div class="flex items-center space-x-4">
+                                            <div class="flex flex-col text-sm text-gray-600">
+                                                <span class="font-medium">Girone {{ match.team1.group }}</span>
+                                                {% if match.field %}
+                                                    <span class="text-xs text-gray-500">Campo {{ match.field }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex items-center">
+                                                <span class="font-semibold w-16 break-all text-right text-xs leading-tight flex items-center justify-end">{{ match.team1.name }}</span>
+                                                {% if match.is_finished %}
+                                                    {% if match.stage in 'FINAL_1_2 FINAL_3_4' %}
+                                                        <div class="font-bold text-lg w-16 flex flex-col items-center justify-center">
+                                                            <div>{{ match.set1_team1 }} - {{ match.set1_team2 }}</div>
+                                                            <div>{{ match.set2_team1 }} - {{ match.set2_team2 }}</div>
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="font-bold text-lg w-16 flex items-center justify-center">{{ match.score_team1 }} - {{ match.score_team2 }}</span>
+                                                    {% endif %}
+
+                                                {% else %}
+                                                    <span class="text-gray-400 w-16 flex items-center justify-center">vs</span>
+                                                {% endif %}
+                                                <span class="font-semibold w-16 break-all text-left text-xs leading-tight flex items-center justify-start">{{ match.team2.name }}</span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            {% if match.is_finished %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Finita</span>
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Da giocare</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                        <div class="flex items-center">
-                            <span class="font-semibold w-16 break-all text-right text-xs leading-tight flex items-center justify-end">{{ match.team1.name }}</span>
-                            {% if match.is_finished %}
-                            <span class="font-bold text-lg w-16 truncate overflow-hidden whitespace-nowrap flex items-center justify-center">{{ match.score_team1 }} - {{ match.score_team2 }}</span>
-                            {% else %}
-                            <span class="text-gray-400 w-16 truncate overflow-hidden whitespace-nowrap flex items-center justify-center">vs</span>
-                            {% endif %}
-                            <span class="font-semibold w-16 break-all text-left text-xs leading-tight flex items-center justify-start">{{ match.team2.name }}</span>
+                    {% endif %}
+                {% endwith %}
+            {% else %}
+                {% with matches|exclude_stage:"GROUP" as filtered_matches %}
+                    {% if filtered_matches %}
+                        <div>
+                            <h3 class="text-lg font-bold text-gray-700 px-4">{{ time }}</h3>
+                            <div class="space-y-2 mt-2">
+                                {% for match in filtered_matches %}
+                                    <!-- MATCH FASE FINALE -->
+                                    <div class="flex items-center gap-2 p-3 bg-white rounded-lg">
+                                        <div class="flex-grow flex items-center space-x-1">
+                                            <div class="flex flex-col text-sm text-gray-600 w-20">
+                                                <span class="font-medium">{{ match.get_stage_display }}</span>
+                                                {% if match.field %}
+                                                    <span class="text-xs text-gray-500">Campo {{ match.field }}</span>
+                                                {% endif %}
+                                            </div>
+                                            <div class="flex-grow flex items-center">
+                                                <span class="font-semibold w-16 break-all text-right text-xs leading-tight flex items-center justify-end">
+                                                    {% if match.team1 %}
+                                                        {{ match.team1.name }}
+                                                    {% else %}
+                                                        ?
+                                                    {% endif %}
+                                                </span>
+                                                {% if match.is_finished %}
+                                                    {% if match.stage in 'FINAL_1_2 FINAL_3_4' %}
+                                                        <div class="font-bold text-lg w-16 flex flex-col items-center justify-center">
+                                                            <div>{{ match.set1_team1 }} - {{ match.set1_team2 }}</div>
+                                                            <div>{{ match.set2_team1 }} - {{ match.set2_team2 }}</div>
+                                                        </div>
+                                                    {% else %}
+                                                        <span class="font-bold text-lg w-16 flex items-center justify-center">{{ match.score_team1 }} - {{ match.score_team2 }}</span>
+                                                    {% endif %}
+                                                {% else %}
+                                                    <span class="text-gray-400 w-16 flex items-center justify-center">vs</span>
+                                                {% endif %}
+                                                <span class="font-semibold w-16 break-all text-left text-xs leading-tight flex items-center justify-start">
+                                                    {% if match.team2 %}
+                                                        {{ match.team2.name }}
+                                                    {% else %}
+                                                        ?
+                                                    {% endif %}
+                                                </span>
+                                            </div>
+                                        </div>
+                                        <div>
+                                            {% if match.is_finished %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Finita</span>
+                                            {% else %}
+                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Da giocare</span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% endfor %}
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        {% if match.is_finished %}
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800 truncate overflow-hidden whitespace-nowrap">Finita</span>
-                        {% else %}
-                        <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800 truncate overflow-hidden whitespace-nowrap">Da giocare</span>
-                        {% endif %}
-                    </div>
-                </div>
-                {% endfor %}
-            </div>
-        </div>
-    {% endfor %}
+                    {% endif %}
+                {% endwith %}
+            {% endif %}
+        {% endfor %}
     </div>
     {% endif %}
 </div>
