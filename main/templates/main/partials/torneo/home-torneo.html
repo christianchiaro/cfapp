@@ -251,9 +251,9 @@
                 </div>
                 {% if team.group %}
                 {% if team.group == 'A' %}
-                    <div class="flex-shrink-0 whitespace-nowrap inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">Girone {{ team.group }}</div>
+                    <div class="flex-shrink-0 whitespace-nowrap inline-flex items-center px-1 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-blue-100 text-blue-800">Girone {{ team.group }}</div>
                 {% else %}
-                    <div class="flex-shrink-0 whitespace-nowrap inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Girone {{ team.group }}</div>
+                    <div class="flex-shrink-0 whitespace-nowrap inline-flex items-center px-1 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-green-100 text-green-800">Girone {{ team.group }}</div>
                 {% endif %}
                 {% endif %}
             </div>
@@ -331,9 +331,9 @@
                                 {% for match in filtered_matches %}
                                     <!-- MATCH DEL GIRONE -->
                                     <div class="flex items-center justify-between p-3 bg-white rounded-lg">
-                                        <div class="flex items-center space-x-4">
+                                        <div class="flex items-center">
                                             <div class="flex flex-col text-sm text-gray-600">
-                                                <span class="font-medium">Girone {{ match.team1.group }}</span>
+                                                <span class="font-medium whitespace-nowrap">Girone {{ match.team1.group }}</span>
                                                 {% if match.field %}
                                                     <span class="text-xs text-gray-500">Campo {{ match.field }}</span>
                                                 {% endif %}
@@ -358,9 +358,9 @@
                                         </div>
                                         <div>
                                             {% if match.is_finished %}
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Finita</span>
+                                                <span class="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-green-100 text-green-800">Finita</span>
                                             {% else %}
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Da giocare</span>
+                                                <span class="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-yellow-100 text-yellow-800">Da giocare</span>
                                             {% endif %}
                                         </div>
                                     </div>
@@ -377,15 +377,15 @@
                             <div class="space-y-2 mt-2">
                                 {% for match in filtered_matches %}
                                     <!-- MATCH FASE FINALE -->
-                                    <div class="flex items-center gap-2 p-3 bg-white rounded-lg">
-                                        <div class="flex-grow flex items-center space-x-1">
-                                            <div class="flex flex-col text-sm text-gray-600 w-20">
+                                    <div class="flex items-center justify-between p-3 bg-white rounded-lg">
+                                        <div class="flex items-center">
+                                            <div class="flex flex-col text-sm text-gray-600">
                                                 <span class="font-medium">{{ match.get_stage_display }}</span>
                                                 {% if match.field %}
                                                     <span class="text-xs text-gray-500">Campo {{ match.field }}</span>
                                                 {% endif %}
                                             </div>
-                                            <div class="flex-grow flex items-center">
+                                            <div class="flex items-center">
                                                 <span class="font-semibold w-16 break-all text-right text-xs leading-tight flex items-center justify-end">
                                                     {% if match.team1 %}
                                                         {{ match.team1.name }}
@@ -416,9 +416,9 @@
                                         </div>
                                         <div>
                                             {% if match.is_finished %}
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">Finita</span>
+                                                <span class="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-green-100 text-green-800">Finita</span>
                                             {% else %}
-                                                <span class="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">Da giocare</span>
+                                                <span class="inline-flex items-center px-1 py-1 rounded-full text-xs font-medium whitespace-nowrap bg-yellow-100 text-yellow-800">Da giocare</span>
                                             {% endif %}
                                         </div>
                                     </div>

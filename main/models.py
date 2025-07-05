@@ -166,11 +166,11 @@ class Team(models.Model):
 class Match(models.Model):
     STAGE_CHOICES = [
         ('GROUP', 'Group Stage'),
-        ('SEMI_FINAL', 'Semifinale'),
+        ('SEMI_FINAL', 'Semi'),
         ('FINAL_1_2', 'Finale'),
-        ('FINAL_3_4', '3º-4º posto'),
-        ('FINAL_5_6', '5º-6º posto'),
-        ('FINAL_7_8', '7º-8º posto'),
+        ('FINAL_3_4', '3º-4º'),
+        ('FINAL_5_6', '5º-6º'),
+        ('FINAL_7_8', '7º-8º'),
     ]
 
     tournament = models.ForeignKey(Tournament, on_delete=models.CASCADE, related_name='matches')

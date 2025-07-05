@@ -552,6 +552,12 @@ def avvia_fasi_finali_partial(request, torneo_id):
 
     nuove_partite = []
 
+    # Finali 1º-2º e 3º-4º (vengono create senza squadre all'inizio)
+    partite_finali = [
+        ('FINAL_1_2', None, None),
+        ('FINAL_3_4', None, None),
+    ]
+
     # Evita doppioni
     if torneo.matches.filter(stage__in=[s for s, *_ in partite + partite_finali]).exists():
         messages.warning(request, "Le fasi finali sembrano già essere state create.")
@@ -562,6 +568,7 @@ def avvia_fasi_finali_partial(request, torneo_id):
     # Semifinali + finali 5/6, 7/8 → 16:15
     start_time_16_15 = make_aware(datetime.combine(torneo.start_date.date(), time(hour=16, minute=15)))
     durata_30min = timedelta(minutes=30)
+
     for stage, t1, t2 in partite:
         # 🔒 Escludi solo i campi già occupati a quell'orario
         campi_occupati = [
